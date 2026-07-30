@@ -29,7 +29,7 @@ export default function Header({ salary, onSave }: Props) {
   return (
     <View style={styles.header}>
       <View style={{ flexShrink: 1 }}>
-        <Text style={styles.title}>Meu Orçamento</Text>
+        <Text style={styles.title}>Totl</Text>
         <Text style={styles.subtitle}>Salário fixo menos parcelas e gastos previstos</Text>
       </View>
       <View style={styles.salaryBox}>
