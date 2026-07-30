@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Meu Orçamento",
+    "slug": "aplicativo_financeiro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#12151B",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.pece.aplicativofinanceiro",
+      "adaptiveIcon": {
+        "backgroundColor": "#12151B",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c2fb59be-885d-461b-8ea5-b6c93d9987e2"
+      }
+    },
+    "owner": "pece"
+  }
+}
