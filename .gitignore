@@ -44,3 +44,6 @@ yarn-error.*
 .claude/
 CLAUDE.md
 AGENTS.md
+
+# notas internas do projeto (não sobe pro repositório)
+contexto.md
