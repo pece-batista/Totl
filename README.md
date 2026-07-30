@@ -1,4 +1,4 @@
-# Meu Orçamento
+# Totl
 
 Aplicativo Android de controle de orçamento mensal. Cadastre seu salário fixo, lance gastos à vista ou parcelados e acompanhe o saldo livre dos próximos 12 meses numa linha do tempo visual.
 
