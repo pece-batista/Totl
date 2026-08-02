@@ -39,14 +39,30 @@ function makeEmptyForm(startMonth: string): ExpenseFormState {
 }
 
 type Props = {
+  salary?: number;
+  setSalary?: React.Dispatch<React.SetStateAction<number>>;
+  expenses?: Expense[];
+  setExpenses?: React.Dispatch<React.SetStateAction<Expense[]>>;
+  categories?: Category[];
+  setCategories?: React.Dispatch<React.SetStateAction<Category[]>>;
   onSignOut?: () => void;
+  onRefresh?: () => Promise<void>;
 };
 
-export default function BudgetScreen({ onSignOut }: Props) {
-  const [loading, setLoading] = useState(true);
-  const [salary, setSalary] = useState(0);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function BudgetScreen({
+  salary: propSalary,
+  setSalary: propSetSalary,
+  expenses: propExpenses,
+  setExpenses: propSetExpenses,
+  categories: propCategories,
+  setCategories: propSetCategories,
+  onSignOut,
+  onRefresh,
+}: Props) {
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [internalSalary, setInternalSalary] = useState(0);
+  const [internalExpenses, setInternalExpenses] = useState<Expense[]>([]);
+  const [internalCategories, setInternalCategories] = useState<Category[]>([]);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [error, setError] = useState("");
@@ -55,23 +71,38 @@ export default function BudgetScreen({ onSignOut }: Props) {
   const [form, setForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const salary = propSalary !== undefined ? propSalary : internalSalary;
+  const setSalary = propSetSalary || setInternalSalary;
+
+  const expenses = propExpenses !== undefined ? propExpenses : internalExpenses;
+  const setExpenses = propSetExpenses || setInternalExpenses;
+
+  const categories = propCategories !== undefined ? propCategories : internalCategories;
+  const setCategories = propSetCategories || setInternalCategories;
+
   const loadData = useCallback(async () => {
-    setLoading(true);
+    if (onRefresh) {
+      await onRefresh();
+      return;
+    }
+    setInternalLoading(true);
     setError("");
     const [s, ex, cats] = await Promise.all([
       fetchSalaryFromDb(),
       fetchExpensesFromDb(),
       fetchCategoriesFromDb(),
     ]);
-    setSalary(s);
-    setExpenses(ex);
-    setCategories(cats);
-    setLoading(false);
-  }, []);
+    setInternalSalary(s);
+    setInternalExpenses(ex);
+    setInternalCategories(cats);
+    setInternalLoading(false);
+  }, [onRefresh]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (propSalary === undefined) {
+      loadData();
+    }
+  }, [loadData, propSalary]);
 
   const categoryMap = useMemo(() => {
     return new Map(categories.map((c) => [c.id, c]));
@@ -114,7 +145,6 @@ export default function BudgetScreen({ onSignOut }: Props) {
     const ok = await deleteCategoryFromDb(id);
     if (ok) {
       setCategories((prev) => prev.filter((c) => c.id !== id));
-      // Se algum gasto usava essa categoria, remove a referência localmente
       setExpenses((prev) =>
         prev.map((e) => (e.categoryId === id ? { ...e, categoryId: null } : e))
       );
@@ -234,7 +264,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
     return { label: `Parcela ${diff + 1}/${exp.installments}`, tone: "rust" };
   }
 
-  if (loading) {
+  if (internalLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={colors.brass} />
