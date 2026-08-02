@@ -14,10 +14,10 @@ export const colors = {
 };
 
 export const fonts = {
-  display: "Fraunces_600SemiBold",
-  displayBold: "Fraunces_700Bold",
-  mono: "JetBrainsMono_400Regular",
-  monoMedium: "JetBrainsMono_500Medium",
-  monoSemiBold: "JetBrainsMono_600SemiBold",
-  monoBold: "JetBrainsMono_700Bold",
+  display: "Fraunces-SemiBold",
+  displayBold: "Fraunces-Bold",
+  mono: "JetBrainsMono-Regular",
+  monoMedium: "JetBrainsMono-Medium",
+  monoSemiBold: "JetBrainsMono-SemiBold",
+  monoBold: "JetBrainsMono-Bold",
 };

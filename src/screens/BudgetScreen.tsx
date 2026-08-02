@@ -11,7 +11,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "../theme/colors";
 import { addMonths, monthDiff, monthLabel, todayMonthKey, isValidMonthKey } from "../utils/date";
 import { parseDecimal, formatCurrency } from "../utils/currency";
-import { getSalary, setSalary as persistSalaryStorage, getExpenses, setExpenses as persistExpensesStorage } from "../storage/storage";
+import {
+  fetchSalaryFromDb,
+  updateSalaryInDb,
+  fetchExpensesFromDb,
+  saveExpenseToDb,
+  deleteExpenseFromDb,
+} from "../services/db";
 import Header from "../components/Header";
 import MonthRibbon from "../components/MonthRibbon";
 import SummaryGrid from "../components/SummaryGrid";
@@ -26,7 +32,11 @@ function makeEmptyForm(startMonth: string): ExpenseFormState {
   return { name: "", value: "", installments: "1", startMonth };
 }
 
-export default function BudgetScreen() {
+type Props = {
+  onSignOut?: () => void;
+};
+
+export default function BudgetScreen({ onSignOut }: Props) {
   const [loading, setLoading] = useState(true);
   const [salary, setSalary] = useState(0);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -37,27 +47,34 @@ export default function BudgetScreen() {
   const [form, setForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      const [s, ex] = await Promise.all([getSalary(), getExpenses()]);
-      setSalary(s);
-      setExpenses(ex);
-      setLoading(false);
-    })();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const [s, ex] = await Promise.all([fetchSalaryFromDb(), fetchExpensesFromDb()]);
+    setSalary(s);
+    setExpenses(ex);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   async function persistSalary(value: number) {
     setSalary(value);
-    const ok = await persistSalaryStorage(value);
-    if (!ok) setError("Não consegui salvar o salário agora. Tenta de novo.");
+    const ok = await updateSalaryInDb(value);
+    if (!ok) setError("Não consegui salvar o salário no banco. Tenta de novo.");
   }
 
-  async function persistExpenses(list: Expense[]) {
-    setExpenses(list);
-    const ok = await persistExpensesStorage(list);
+  async function saveExpense(exp: Expense, isNew: boolean) {
+    if (isNew) {
+      setExpenses((prev) => [...prev, exp]);
+    } else {
+      setExpenses((prev) => prev.map((item) => (item.id === exp.id ? exp : item)));
+    }
+    const ok = await saveExpenseToDb(exp);
     if (!ok) {
-      setError("Não consegui salvar os gastos agora. Tenta de novo.");
-      setFormNotice({ type: "error", text: "Adicionado na tela, mas não salvou. Tenta de novo." });
+      setError("Erro ao salvar lançamento no Supabase.");
     }
   }
 
@@ -118,12 +135,14 @@ export default function BudgetScreen() {
     const installments = Math.max(1, parseInt(form.installments, 10) || 1);
 
     if (editingId) {
-      const updated = expenses.map((ex) =>
-        ex.id === editingId
-          ? { ...ex, name: form.name.trim(), value, installments, startMonth: form.startMonth }
-          : ex
-      );
-      persistExpenses(updated);
+      const updatedExpense: Expense = {
+        id: editingId,
+        name: form.name.trim(),
+        value,
+        installments,
+        startMonth: form.startMonth,
+      };
+      saveExpense(updatedExpense, false);
       setFormNotice({ type: "success", text: "Lançamento atualizado." });
     } else {
       const newExpense: Expense = {
@@ -133,7 +152,7 @@ export default function BudgetScreen() {
         installments,
         startMonth: form.startMonth,
       };
-      persistExpenses([...expenses, newExpense]);
+      saveExpense(newExpense, true);
       setFormNotice({ type: "success", text: `"${newExpense.name}" adicionado.` });
     }
     resetForm();
@@ -152,8 +171,9 @@ export default function BudgetScreen() {
     setFormNotice(null);
   }
 
-  function handleDelete(id: string) {
-    persistExpenses(expenses.filter((e) => e.id !== id));
+  async function handleDelete(id: string) {
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    await deleteExpenseFromDb(id);
     if (editingId === id) resetForm();
   }
 
@@ -178,7 +198,7 @@ export default function BudgetScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header salary={salary} onSave={persistSalary} />
+        <Header salary={salary} onSave={persistSalary} onSignOut={onSignOut} />
 
         {!!error && (
           <View style={styles.errorBanner}>

@@ -1,73 +1,84 @@
 # Totl
 
-Aplicativo Android de controle de orçamento mensal. Cadastre seu salário fixo, lance gastos à vista ou parcelados e acompanhe o saldo livre dos próximos 12 meses numa linha do tempo visual.
+Aplicativo Android de controle de orçamento mensal com autenticação de usuário e sincronização em nuvem. Cadastre seu salário fixo, lance gastos à vista ou parcelados e acompanhe o saldo livre dos próximos 12 meses numa linha do tempo visual.
 
 ## Funcionalidades
 
-- Salário fixo mensal editável
-- Linha do tempo horizontal dos próximos 12 meses, com barras de saldo livre vs. comprometido
-- Cadastro de gastos à vista ou parcelados, com mês inicial configurável
-- Cálculo automático de parcela atual e término do parcelamento
-- Filtro dos gastos ativos do mês selecionado
-- Lista completa de lançamentos com status ("Quitado", "Parcela X/Y", "Começa em MM/AA")
-- Dados salvos localmente no dispositivo (AsyncStorage)
+- **Autenticação Segura**: Cadastro e Login usando nome de usuário e senha com alternador de visibilidade de senha.
+- **Privacidade e Isolamento**: Dados e orçamentos isolados por usuário com políticas de segurança em nível de linha (RLS).
+- **Salário Fixo Editável**: Controle de salário mensal por perfil.
+- **Linha do Tempo (12 Meses)**: Visualização horizontal dos próximos 12 meses com barras de saldo livre vs. comprometido.
+- **Lançamentos & Parcelamentos**: Cadastro de gastos à vista ou parcelados com mês inicial configurável.
+- **Cálculo Automático**: Cálculo automático da parcela atual, término do parcelamento e status ("Quitado", "Parcela X/Y", "Começa em MM/AA").
+- **Sincronização em Nuvem**: Dados mantidos no banco de dados PostgreSQL via Supabase.
 
-## Tech stack
+## Tech Stack
 
-- [Expo](https://expo.dev/) (SDK 57) + React Native
-- TypeScript
-- `@react-native-async-storage/async-storage` para persistência
-- `lucide-react-native` para ícones
-- `@expo-google-fonts/fraunces` e `@expo-google-fonts/jetbrains-mono` para tipografia
+- **React Native CLI (Bare Native)**
+- **TypeScript**
+- **Supabase** (`@supabase/supabase-js` — Auth & PostgreSQL com RLS)
+- **`lucide-react-native`** para ícones
+- **Fontes Nativas**: `Fraunces` e `JetBrains Mono` em `assets/fonts/`
 
-## Como rodar
+## Como rodar o projeto
+
+### Pré-requisitos
+
+- Node.js & npm
+- Android SDK & Android Studio configurados
+- Emulador Android ou dispositivo físico conectado via USB (`adb devices`)
+
+### Instalação e Execução
+
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+
+2. Em um terminal, inicie o bundler do Metro:
+   ```bash
+   npx react-native start
+   ```
+
+3. Em outro terminal, compile e instale o app no emulador/dispositivo:
+   ```bash
+   npx react-native run-android --no-packager
+   ```
+
+## Gerar um APK local
+
+Para compilar o APK em modo Debug:
 
 ```bash
-npm install
-npx expo start
-```
-
-Escaneie o QR code com o app **Expo Go** no Android, ou pressione `a` para abrir num emulador configurado.
-
-## Gerar um APK
-
-**Build na nuvem (EAS, sem precisar de Android Studio):**
-
-```bash
-npx eas-cli login
-npx eas-cli build --platform android --profile preview
-```
-
-**Build local (com Android Studio + SDK instalados):**
-
-```bash
-npx expo prebuild --platform android
 cd android
 ./gradlew assembleDebug
 ```
 
-O APK gerado fica em `android/app/build/outputs/apk/debug/app-debug.apk`.
+O arquivo `.apk` gerado estará em `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Estrutura do projeto
 
 ```
 src/
-  components/   Componentes de UI reutilizáveis
-  screens/      Tela principal (BudgetScreen)
-  storage/      Camada de persistência (AsyncStorage)
-  theme/        Cores e fontes
-  types/        Tipos compartilhados
-  utils/        Funções de data e formatação de moeda
+  components/   Componentes reutilizáveis de UI (Header, ExpenseRow, ExpenseForm, MonthRibbon, SummaryGrid, MonthStepper, SectionLabel)
+  screens/      Telas da aplicação (AuthScreen, BudgetScreen)
+  services/     Integração com Supabase (supabase.ts, auth.ts, db.ts)
+  theme/        Cores e fontes (colors.ts)
+  types/        Tipos TypeScript compartilhados
+  utils/        Utilitários de data e formatação de moeda
+assets/
+  fonts/        Arquivos de fontes .ttf (Fraunces e JetBrains Mono)
 ```
 
 ## Paleta de cores
 
-| Nome  | Hex       |
-|-------|-----------|
-| Ink   | `#12151B` |
-| Brass | `#D7B56D` |
-| Jade  | `#4FA184` |
-| Rust  | `#C0603B` |
+| Nome  | Hex       | Descrição |
+|-------|-----------|-----------|
+| Ink   | `#12151B` | Fundo principal (Dark) |
+| Panel | `#1A1F28` | Cards e painéis |
+| Brass | `#D7B56D` | Destaques e títulos |
+| Jade  | `#4FA184` | Indicador de saldo positivo e ações |
+| Rust  | `#C0603B` | Alertas e erros |
 
 ## Licença
 
