@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "../theme/colors";
@@ -197,89 +199,98 @@ export default function BudgetScreen({ onSignOut }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header salary={salary} onSave={persistSalary} onSignOut={onSignOut} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+        >
+          <Header salary={salary} onSave={persistSalary} onSignOut={onSignOut} />
 
-        {!!error && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        <SectionLabel>Próximos 12 meses — livre vs. comprometido</SectionLabel>
-        <MonthRibbon
-          timeline={timeline}
-          barBase={barBase}
-          selectedIndex={monthOffset}
-          onSelect={setMonthOffset}
-        />
-
-        <View style={{ marginBottom: 10 }}>
-          <SectionLabel>{monthLabel(selectedMonth, "long")}</SectionLabel>
-        </View>
-        <SummaryGrid salary={salary} committed={committed} free={free} />
-
-        <SectionLabel>Gastos deste mês</SectionLabel>
-        <View style={styles.list}>
-          {monthActive.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Nada lançado pra este mês ainda.</Text>
+          {!!error && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{error}</Text>
             </View>
-          ) : (
-            monthActive.map((e) => (
-              <ExpenseRow
-                key={e.id}
-                name={e.name}
-                meta={e.installments > 1 ? `Parcela ${e.currentInstallment}/${e.installments}` : "Gasto único"}
-                value={e.value}
-                onEdit={() => handleEdit(e)}
-                onDelete={() => handleDelete(e.id)}
-              />
-            ))
           )}
-        </View>
 
-        <SectionLabel>{editingId ? "Editar lançamento" : "Adicionar gasto ou parcelamento"}</SectionLabel>
-        <ExpenseForm
-          form={form}
-          onChange={setForm}
-          editingId={editingId}
-          onSubmit={handleSubmit}
-          onCancel={resetForm}
-          notice={formNotice}
-        />
+          <SectionLabel>Próximos 12 meses — livre vs. comprometido</SectionLabel>
+          <MonthRibbon
+            timeline={timeline}
+            barBase={barBase}
+            selectedIndex={monthOffset}
+            onSelect={setMonthOffset}
+          />
 
-        <TouchableOpacity onPress={() => setShowAll(!showAll)} style={styles.toggleAll}>
-          <Text style={styles.toggleAllText}>
-            {showAll ? "Ocultar" : "Ver"} todos os lançamentos cadastrados ({expenses.length})
-          </Text>
-        </TouchableOpacity>
+          <View style={{ marginBottom: 10 }}>
+            <SectionLabel>{monthLabel(selectedMonth, "long")}</SectionLabel>
+          </View>
+          <SummaryGrid salary={salary} committed={committed} free={free} />
 
-        {showAll && (
+          <SectionLabel>Gastos deste mês</SectionLabel>
           <View style={styles.list}>
-            {sortedExpenses.length === 0 ? (
+            {monthActive.length === 0 ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>Nenhum lançamento cadastrado ainda.</Text>
+                <Text style={styles.emptyText}>Nada lançado pra este mês ainda.</Text>
               </View>
             ) : (
-              sortedExpenses.map((exp) => {
-                const status = expenseStatus(exp);
-                return (
-                  <ExpenseRow
-                    key={exp.id}
-                    name={exp.name}
-                    meta={`${formatCurrency(exp.value)} × ${exp.installments}x desde ${monthLabel(exp.startMonth)}`}
-                    value={exp.value}
-                    badge={status}
-                    onEdit={() => handleEdit(exp)}
-                    onDelete={() => handleDelete(exp.id)}
-                  />
-                );
-              })
+              monthActive.map((e) => (
+                <ExpenseRow
+                  key={e.id}
+                  name={e.name}
+                  meta={e.installments > 1 ? `Parcela ${e.currentInstallment}/${e.installments}` : "Gasto único"}
+                  value={e.value}
+                  onEdit={() => handleEdit(e)}
+                  onDelete={() => handleDelete(e.id)}
+                />
+              ))
             )}
           </View>
-        )}
-      </ScrollView>
+
+          <SectionLabel>{editingId ? "Editar lançamento" : "Adicionar gasto ou parcelamento"}</SectionLabel>
+          <ExpenseForm
+            form={form}
+            onChange={setForm}
+            editingId={editingId}
+            onSubmit={handleSubmit}
+            onCancel={resetForm}
+            notice={formNotice}
+          />
+
+          <TouchableOpacity onPress={() => setShowAll(!showAll)} style={styles.toggleAll}>
+            <Text style={styles.toggleAllText}>
+              {showAll ? "Ocultar" : "Ver"} todos os lançamentos cadastrados ({expenses.length})
+            </Text>
+          </TouchableOpacity>
+
+          {showAll && (
+            <View style={styles.list}>
+              {sortedExpenses.length === 0 ? (
+                <View style={styles.empty}>
+                  <Text style={styles.emptyText}>Nenhum lançamento cadastrado ainda.</Text>
+                </View>
+              ) : (
+                sortedExpenses.map((exp) => {
+                  const status = expenseStatus(exp);
+                  return (
+                    <ExpenseRow
+                      key={exp.id}
+                      name={exp.name}
+                      meta={`${formatCurrency(exp.value)} × ${exp.installments}x desde ${monthLabel(exp.startMonth)}`}
+                      value={exp.value}
+                      badge={status}
+                      onEdit={() => handleEdit(exp)}
+                      onDelete={() => handleDelete(exp.id)}
+                    />
+                  );
+                })
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -291,7 +302,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
   loadingContainer: {
     flex: 1,
