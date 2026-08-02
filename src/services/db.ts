@@ -18,9 +18,6 @@ async function handleQueryWithRetry<T>(
       (result.error.message && result.error.message.includes("JWT issued at future"));
 
     if (isClockSkew) {
-      console.warn(
-        `[Supabase DB] Relógio em transição (${result.error.code}). Revalidando em 1s (tentativa ${retries + 1}/${maxRetries})...`
-      );
       await new Promise((resolve) => setTimeout(() => resolve(null), 1000));
       result = await queryFn();
       retries++;
