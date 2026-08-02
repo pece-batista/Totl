@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Pencil, Check, X, LogOut } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
-import { formatCurrency, parseDecimal } from "../utils/currency";
+import { formatCurrency, parseDecimal, formatCurrencyInput } from "../utils/currency";
 
 type Props = {
   salary: number;
@@ -15,7 +15,7 @@ export default function Header({ salary, onSave, onSignOut }: Props) {
   const [draft, setDraft] = useState("");
 
   function startEdit() {
-    setDraft(salary ? String(salary).replace(".", ",") : "");
+    setDraft(salary ? formatCurrencyInput(String(Math.round(salary * 100))) : "");
     setEditing(true);
   }
 
@@ -47,8 +47,8 @@ export default function Header({ salary, onSave, onSignOut }: Props) {
             <TextInput
               style={styles.salaryInput}
               value={draft}
-              onChangeText={setDraft}
-              keyboardType="decimal-pad"
+              onChangeText={(t) => setDraft(formatCurrencyInput(t))}
+              keyboardType="number-pad"
               autoFocus
               onSubmitEditing={confirm}
               placeholder="0,00"

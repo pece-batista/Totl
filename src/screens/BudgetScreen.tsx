@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, fonts } from "../theme/colors";
 import { addMonths, monthDiff, monthLabel, todayMonthKey, isValidMonthKey } from "../utils/date";
-import { parseDecimal, formatCurrency } from "../utils/currency";
+import { parseDecimal, formatCurrency, formatCurrencyInput } from "../utils/currency";
 import {
   fetchSalaryFromDb,
   updateSalaryInDb,
@@ -165,11 +165,10 @@ export default function BudgetScreen({ onSignOut }: Props) {
 
   function handleEdit(exp: Expense) {
     const totalValue = exp.value * exp.installments;
-    // Arredonda para 2 casas decimais para evitar imprecisão de ponto flutuante
-    const formattedTotal = Number(totalValue.toFixed(2));
+    const totalCents = Math.round(totalValue * 100);
     setForm({
       name: exp.name,
-      value: String(formattedTotal).replace(".", ","),
+      value: formatCurrencyInput(String(totalCents)),
       installments: String(exp.installments),
       startMonth: exp.startMonth,
     });

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-nativ
 import { Plus, Check, Calculator } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import MonthStepper from "./MonthStepper";
-import { parseDecimal, formatCurrency } from "../utils/currency";
+import { parseDecimal, formatCurrency, formatCurrencyInput } from "../utils/currency";
 import type { ExpenseFormState, FormNotice } from "../types";
 
 type Props = {
@@ -39,11 +39,11 @@ export default function ExpenseForm({ form, onChange, editingId, onSubmit, onCan
           <Text style={styles.label}>Valor total da compra</Text>
           <TextInput
             style={styles.input}
-            placeholder="1200,00"
+            placeholder="0,00"
             placeholderTextColor={colors.paperDim}
-            keyboardType="decimal-pad"
+            keyboardType="number-pad"
             value={form.value}
-            onChangeText={(t) => onChange({ ...form, value: t })}
+            onChangeText={(t) => onChange({ ...form, value: formatCurrencyInput(t) })}
           />
         </View>
         <View style={[styles.field, { flex: 1 }]}>
