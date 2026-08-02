@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { Plus, Check } from "lucide-react-native";
+import { Plus, Check, Calculator } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import MonthStepper from "./MonthStepper";
+import { parseDecimal, formatCurrency } from "../utils/currency";
 import type { ExpenseFormState, FormNotice } from "../types";
 
 type Props = {
@@ -15,13 +16,18 @@ type Props = {
 };
 
 export default function ExpenseForm({ form, onChange, editingId, onSubmit, onCancel, notice }: Props) {
+  const totalValue = parseDecimal(form.value);
+  const installments = Math.max(1, parseInt(form.installments, 10) || 1);
+  const hasValidTotal = !isNaN(totalValue) && totalValue > 0;
+  const monthlyValue = hasValidTotal ? totalValue / installments : 0;
+
   return (
     <View style={styles.form}>
       <View style={styles.field}>
-        <Text style={styles.label}>Nome</Text>
+        <Text style={styles.label}>Nome do gasto</Text>
         <TextInput
           style={styles.input}
-          placeholder="Ex: Notebook, Streaming..."
+          placeholder="Ex: TV, Celular, Mercado..."
           placeholderTextColor={colors.paperDim}
           value={form.name}
           onChangeText={(t) => onChange({ ...form, name: t })}
@@ -30,10 +36,10 @@ export default function ExpenseForm({ form, onChange, editingId, onSubmit, onCan
 
       <View style={styles.row}>
         <View style={[styles.field, { flex: 1 }]}>
-          <Text style={styles.label}>Valor da parcela</Text>
+          <Text style={styles.label}>Valor total da compra</Text>
           <TextInput
             style={styles.input}
-            placeholder="150,00"
+            placeholder="1200,00"
             placeholderTextColor={colors.paperDim}
             keyboardType="decimal-pad"
             value={form.value}
@@ -52,6 +58,17 @@ export default function ExpenseForm({ form, onChange, editingId, onSubmit, onCan
           />
         </View>
       </View>
+
+      {hasValidTotal && (
+        <View style={styles.calcPreview}>
+          <Calculator size={14} color={colors.brass} />
+          <Text style={styles.calcPreviewText}>
+            {installments > 1
+              ? `${installments}x de ${formatCurrency(monthlyValue)} / mês`
+              : `${formatCurrency(totalValue)} à vista (gasto único)`}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.field}>
         <Text style={styles.label}>Mês inicial</Text>
@@ -122,6 +139,22 @@ const styles = StyleSheet.create({
     color: colors.paper,
     fontFamily: fonts.mono,
     fontSize: 13,
+  },
+  calcPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.brassSoft,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  calcPreviewText: {
+    fontFamily: fonts.monoSemiBold,
+    color: colors.brass,
+    fontSize: 12,
   },
   actions: {
     flexDirection: "row",

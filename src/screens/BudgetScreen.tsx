@@ -121,13 +121,14 @@ export default function BudgetScreen({ onSignOut }: Props) {
   }
 
   function handleSubmit() {
+    setFormNotice(null);
     if (!form.name.trim()) {
-      setFormNotice({ type: "error", text: "Falta o nome do gasto." });
+      setFormNotice({ type: "error", text: "Dá um nome pro gasto (ex: Mercado, Notebook...)." });
       return;
     }
-    const value = parseDecimal(form.value);
-    if (isNaN(value) || value <= 0) {
-      setFormNotice({ type: "error", text: "O valor precisa ser um número maior que zero (ex: 150,00)." });
+    const totalValue = parseDecimal(form.value);
+    if (isNaN(totalValue) || totalValue <= 0) {
+      setFormNotice({ type: "error", text: "O valor precisa ser um número maior que zero (ex: 1200,00)." });
       return;
     }
     if (!form.startMonth || !isValidMonthKey(form.startMonth)) {
@@ -135,12 +136,13 @@ export default function BudgetScreen({ onSignOut }: Props) {
       return;
     }
     const installments = Math.max(1, parseInt(form.installments, 10) || 1);
+    const monthlyValue = totalValue / installments;
 
     if (editingId) {
       const updatedExpense: Expense = {
         id: editingId,
         name: form.name.trim(),
-        value,
+        value: monthlyValue,
         installments,
         startMonth: form.startMonth,
       };
@@ -150,7 +152,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
       const newExpense: Expense = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: form.name.trim(),
-        value,
+        value: monthlyValue,
         installments,
         startMonth: form.startMonth,
       };
@@ -162,9 +164,12 @@ export default function BudgetScreen({ onSignOut }: Props) {
   }
 
   function handleEdit(exp: Expense) {
+    const totalValue = exp.value * exp.installments;
+    // Arredonda para 2 casas decimais para evitar imprecisão de ponto flutuante
+    const formattedTotal = Number(totalValue.toFixed(2));
     setForm({
       name: exp.name,
-      value: String(exp.value).replace(".", ","),
+      value: String(formattedTotal).replace(".", ","),
       installments: String(exp.installments),
       startMonth: exp.startMonth,
     });
@@ -278,7 +283,11 @@ export default function BudgetScreen({ onSignOut }: Props) {
                     <ExpenseRow
                       key={exp.id}
                       name={exp.name}
-                      meta={`${formatCurrency(exp.value)} × ${exp.installments}x desde ${monthLabel(exp.startMonth)}`}
+                      meta={
+                        exp.installments > 1
+                          ? `${formatCurrency(exp.value)}/mês (${exp.installments}x = Total ${formatCurrency(exp.value * exp.installments)}) desde ${monthLabel(exp.startMonth)}`
+                          : `${formatCurrency(exp.value)} à vista desde ${monthLabel(exp.startMonth)}`
+                      }
                       value={exp.value}
                       badge={status}
                       onEdit={() => handleEdit(exp)}
