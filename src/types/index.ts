@@ -1,9 +1,16 @@
+export type Category = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 export type Expense = {
   id: string;
   name: string;
   value: number;
   installments: number;
   startMonth: string; // "YYYY-MM"
+  categoryId?: string | null;
 };
 
 export type ActiveExpense = Expense & { currentInstallment: number };
@@ -26,4 +33,5 @@ export type ExpenseFormState = {
   value: string;
   installments: string;
   startMonth: string;
+  categoryId: string | null;
 };

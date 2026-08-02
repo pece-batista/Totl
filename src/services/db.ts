@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense } from "../types";
+import type { Expense, Category } from "../types";
 
 /**
  * Função helper de resiliência: se o banco retornar erro de JWT emitido no futuro (PGRST303)
@@ -104,6 +104,7 @@ export async function fetchExpensesFromDb(): Promise<Expense[]> {
     value: Number(row.value),
     installments: Number(row.installments),
     startMonth: row.start_month,
+    categoryId: row.category_id || null,
   }));
 }
 
@@ -121,6 +122,7 @@ export async function saveExpenseToDb(expense: Expense): Promise<boolean> {
       value: expense.value,
       installments: expense.installments,
       start_month: expense.startMonth,
+      category_id: expense.categoryId || null,
     })
   );
 
@@ -147,6 +149,113 @@ export async function deleteExpenseFromDb(id: string): Promise<boolean> {
 
   if (error) {
     console.error("Erro ao excluir gasto do Supabase:", error);
+    return false;
+  }
+  return true;
+}
+
+/* ============================================================================
+   CATEGORIAS CUSTOMIZADAS
+   ============================================================================ */
+
+const DEFAULT_CATEGORIES: Array<Omit<Category, "id">> = [
+  { name: "Moradia", color: "#C0603B" },
+  { name: "Mercado", color: "#4FA184" },
+  { name: "Contas", color: "#D7B56D" },
+  { name: "Lazer", color: "#8B7EC8" },
+];
+
+export async function fetchCategoriesFromDb(): Promise<Category[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await handleQueryWithRetry<any[]>(async () =>
+    await supabase
+      .from("categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+  );
+
+  if (error) {
+    console.error("Erro ao carregar categorias do Supabase:", error);
+    return [];
+  }
+
+  // Se o usuário ainda não tiver categorias, cria as padrão automaticamente
+  if (!data || data.length === 0) {
+    const created: Category[] = [];
+    for (const def of DEFAULT_CATEGORIES) {
+      const { data: newCat, error: insertErr } = await handleQueryWithRetry<any>(async () =>
+        await supabase
+          .from("categories")
+          .insert({
+            user_id: user.id,
+            name: def.name,
+            color: def.color,
+          })
+          .select()
+          .single()
+      );
+      if (newCat && !insertErr) {
+        created.push({ id: newCat.id, name: newCat.name, color: newCat.color });
+      }
+    }
+    return created;
+  }
+
+  return data.map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    color: row.color,
+  }));
+}
+
+export async function saveCategoryToDb(category: Category): Promise<Category | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await handleQueryWithRetry<any>(async () =>
+    await supabase
+      .from("categories")
+      .upsert({
+        id: category.id || undefined,
+        user_id: user.id,
+        name: category.name,
+        color: category.color,
+      })
+      .select()
+      .single()
+  );
+
+  if (error) {
+    console.error("Erro ao salvar categoria no Supabase:", error);
+    return null;
+  }
+
+  return { id: data.id, name: data.name, color: data.color };
+}
+
+export async function deleteCategoryFromDb(id: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await handleQueryWithRetry(async () =>
+    await supabase
+      .from("categories")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+  );
+
+  if (error) {
+    console.error("Erro ao excluir categoria do Supabase:", error);
     return false;
   }
   return true;

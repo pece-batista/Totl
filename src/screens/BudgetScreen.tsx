@@ -19,19 +19,23 @@ import {
   fetchExpensesFromDb,
   saveExpenseToDb,
   deleteExpenseFromDb,
+  fetchCategoriesFromDb,
+  saveCategoryToDb,
+  deleteCategoryFromDb,
 } from "../services/db";
 import Header from "../components/Header";
 import MonthRibbon from "../components/MonthRibbon";
 import SummaryGrid from "../components/SummaryGrid";
 import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
+import CategoriesModal from "../components/CategoriesModal";
 import SectionLabel from "../components/SectionLabel";
-import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus } from "../types";
+import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category } from "../types";
 
 const TIMELINE_LENGTH = 12;
 
 function makeEmptyForm(startMonth: string): ExpenseFormState {
-  return { name: "", value: "", installments: "1", startMonth };
+  return { name: "", value: "", installments: "1", startMonth, categoryId: null };
 }
 
 type Props = {
@@ -42,6 +46,8 @@ export default function BudgetScreen({ onSignOut }: Props) {
   const [loading, setLoading] = useState(true);
   const [salary, setSalary] = useState(0);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [error, setError] = useState("");
   const [formNotice, setFormNotice] = useState<FormNotice>(null);
@@ -52,15 +58,24 @@ export default function BudgetScreen({ onSignOut }: Props) {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
-    const [s, ex] = await Promise.all([fetchSalaryFromDb(), fetchExpensesFromDb()]);
+    const [s, ex, cats] = await Promise.all([
+      fetchSalaryFromDb(),
+      fetchExpensesFromDb(),
+      fetchCategoriesFromDb(),
+    ]);
     setSalary(s);
     setExpenses(ex);
+    setCategories(cats);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const categoryMap = useMemo(() => {
+    return new Map(categories.map((c) => [c.id, c]));
+  }, [categories]);
 
   async function persistSalary(value: number) {
     setSalary(value);
@@ -77,6 +92,32 @@ export default function BudgetScreen({ onSignOut }: Props) {
     const ok = await saveExpenseToDb(exp);
     if (!ok) {
       setError("Erro ao salvar lançamento no Supabase.");
+    }
+  }
+
+  async function handleSaveCategory(category: Category) {
+    const saved = await saveCategoryToDb(category);
+    if (saved) {
+      setCategories((prev) => {
+        const idx = prev.findIndex((c) => c.id === saved.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = saved;
+          return updated;
+        }
+        return [...prev, saved];
+      });
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    const ok = await deleteCategoryFromDb(id);
+    if (ok) {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      // Se algum gasto usava essa categoria, remove a referência localmente
+      setExpenses((prev) =>
+        prev.map((e) => (e.categoryId === id ? { ...e, categoryId: null } : e))
+      );
     }
   }
 
@@ -145,6 +186,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
         value: monthlyValue,
         installments,
         startMonth: form.startMonth,
+        categoryId: form.categoryId || null,
       };
       saveExpense(updatedExpense, false);
       setFormNotice({ type: "success", text: "Lançamento atualizado." });
@@ -155,6 +197,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
         value: monthlyValue,
         installments,
         startMonth: form.startMonth,
+        categoryId: form.categoryId || null,
       };
       saveExpense(newExpense, true);
       setFormNotice({ type: "success", text: `"${newExpense.name}" adicionado.` });
@@ -171,6 +214,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
       value: formatCurrencyInput(String(totalCents)),
       installments: String(exp.installments),
       startMonth: exp.startMonth,
+      categoryId: exp.categoryId || null,
     });
     setEditingId(exp.id);
     setError("");
@@ -246,6 +290,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
                   name={e.name}
                   meta={e.installments > 1 ? `Parcela ${e.currentInstallment}/${e.installments}` : "Gasto único"}
                   value={e.value}
+                  category={e.categoryId ? categoryMap.get(e.categoryId) : null}
                   onEdit={() => handleEdit(e)}
                   onDelete={() => handleDelete(e.id)}
                 />
@@ -256,10 +301,12 @@ export default function BudgetScreen({ onSignOut }: Props) {
           <SectionLabel>{editingId ? "Editar lançamento" : "Adicionar gasto ou parcelamento"}</SectionLabel>
           <ExpenseForm
             form={form}
+            categories={categories}
             onChange={setForm}
             editingId={editingId}
             onSubmit={handleSubmit}
             onCancel={resetForm}
+            onOpenCategoryManager={() => setCategoryModalVisible(true)}
             notice={formNotice}
           />
 
@@ -288,6 +335,7 @@ export default function BudgetScreen({ onSignOut }: Props) {
                           : `${formatCurrency(exp.value)} à vista desde ${monthLabel(exp.startMonth)}`
                       }
                       value={exp.value}
+                      category={exp.categoryId ? categoryMap.get(exp.categoryId) : null}
                       badge={status}
                       onEdit={() => handleEdit(exp)}
                       onDelete={() => handleDelete(exp.id)}
@@ -299,6 +347,14 @@ export default function BudgetScreen({ onSignOut }: Props) {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CategoriesModal
+        visible={categoryModalVisible}
+        categories={categories}
+        onClose={() => setCategoryModalVisible(false)}
+        onSaveCategory={handleSaveCategory}
+        onDeleteCategory={handleDeleteCategory}
+      />
     </SafeAreaView>
   );
 }
