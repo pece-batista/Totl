@@ -24,7 +24,8 @@ import {
   deleteCategoryFromDb,
 } from "../services/db";
 import Header from "../components/Header";
-import MonthRibbon from "../components/MonthRibbon";
+import DonutChart from "../components/DonutChart";
+import MonthStepper from "../components/MonthStepper";
 import SummaryGrid from "../components/SummaryGrid";
 import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
@@ -184,8 +185,6 @@ export default function BudgetScreen({
     });
   }, [activeExpensesForMonth, salary]);
 
-  const barBase = Math.max(salary, ...timeline.map((t) => t.committed), 100);
-
   function resetForm() {
     setForm(makeEmptyForm(selectedMonth));
     setEditingId(null);
@@ -294,17 +293,26 @@ export default function BudgetScreen({
             </View>
           )}
 
-          <SectionLabel>Próximos 12 meses — livre vs. comprometido</SectionLabel>
-          <MonthRibbon
-            timeline={timeline}
-            barBase={barBase}
-            selectedIndex={monthOffset}
-            onSelect={setMonthOffset}
+          {/* Seletor de Mês e Gráfico em Rosquinha (Donut) */}
+          <View style={styles.monthHeaderRow}>
+            <SectionLabel>{monthLabel(selectedMonth, "long")}</SectionLabel>
+            <MonthStepper
+              value={selectedMonth}
+              onChange={(mKey) => {
+                const diff = monthDiff(todayMonthKey(), mKey);
+                setMonthOffset(diff);
+              }}
+            />
+          </View>
+
+          <DonutChart
+            salary={salary}
+            committed={committed}
+            free={free}
+            expenses={monthActive}
+            categoryMap={categoryMap}
           />
 
-          <View style={{ marginBottom: 10 }}>
-            <SectionLabel>{monthLabel(selectedMonth, "long")}</SectionLabel>
-          </View>
           <SummaryGrid salary={salary} committed={committed} free={free} />
 
           <SectionLabel>Gastos deste mês</SectionLabel>
@@ -397,6 +405,12 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 160,
+  },
+  monthHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
   },
   loadingContainer: {
     flex: 1,

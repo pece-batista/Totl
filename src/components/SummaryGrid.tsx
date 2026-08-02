@@ -6,10 +6,10 @@ import { formatCurrency } from "../utils/currency";
 type Props = {
   salary: number;
   committed: number;
-  free: number;
+  free?: number;
 };
 
-export default function SummaryGrid({ salary, committed, free }: Props) {
+export default function SummaryGrid({ salary, committed }: Props) {
   return (
     <View style={styles.grid}>
       <View style={styles.stat}>
@@ -19,12 +19,6 @@ export default function SummaryGrid({ salary, committed, free }: Props) {
       <View style={styles.stat}>
         <Text style={styles.label}>Comprometido</Text>
         <Text style={[styles.value, { color: colors.rust }]}>− {formatCurrency(committed)}</Text>
-      </View>
-      <View style={styles.stat}>
-        <Text style={styles.label}>Saldo livre</Text>
-        <Text style={[styles.value, { color: free >= 0 ? colors.jade : colors.rust }]}>
-          {formatCurrency(free)}
-        </Text>
       </View>
     </View>
   );
