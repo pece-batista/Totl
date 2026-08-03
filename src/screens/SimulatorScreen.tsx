@@ -90,21 +90,21 @@ export default function SimulatorScreen({
   const healthStatus = useMemo(() => {
     if (simulatedPercent <= 50) {
       return {
-        label: "Orçamento Saudável 🟢",
+        label: "Orçamento Saudável",
         color: colors.jade,
         sub: "A simulação compromete menos de 50% da sua renda mensal.",
         icon: CheckCircle2,
       };
     } else if (simulatedPercent <= 75) {
       return {
-        label: "Atenção ao Comprometimento 🟡",
+        label: "Atenção ao Comprometimento",
         color: colors.brass,
         sub: "Comprometimento moderado (entre 50% e 75%). Avalie suas reservas.",
         icon: AlertTriangle,
       };
     } else {
       return {
-        label: "Risco de Apertar Finanças 🔴",
+        label: "Risco de Apertar Finanças",
         color: colors.rust,
         sub: "Comprometimento elevado (acima de 75%). Risco de saldo negativo.",
         icon: AlertTriangle,
@@ -125,7 +125,7 @@ export default function SimulatorScreen({
     setCommitting(true);
     await onCommitExpense(name.trim(), monthlyValue, installments, startMonth);
     setCommitting(false);
-    Alert.alert("Sucesso 🚀", `"${name}" foi adicionado ao seu orçamento real!`);
+    Alert.alert("Sucesso", `"${name}" foi adicionado ao seu orçamento real!`);
   }
 
   const HealthIcon = healthStatus.icon;
@@ -302,7 +302,7 @@ export default function SimulatorScreen({
         >
           <PlusCircle size={18} color={colors.ink} />
           <Text style={styles.commitBtnText}>
-            Efetivar e Adicionar ao Orçamento Real 🚀
+            Efetivar e Adicionar ao Orçamento Real
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -491,6 +491,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brass,
     borderRadius: 12,
     paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -498,7 +499,9 @@ const styles = StyleSheet.create({
   },
   commitBtnText: {
     fontFamily: fonts.monoSemiBold,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.ink,
+    textAlign: "center",
+    flexShrink: 1,
   },
 });
