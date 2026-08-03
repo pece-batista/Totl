@@ -10,9 +10,10 @@ type Props = {
   form: ExpenseFormState;
   categories: Category[];
   currency?: CurrencyCode;
+  hideValues?: boolean;
   onChange: (form: ExpenseFormState) => void;
   editingId: string | null;
-  onSubmit: () => void;
+  onSubmit: (calculatedMonthlyValue?: number) => void;
   onCancel: () => void;
   onOpenCategoryManager: () => void;
   notice: FormNotice;
@@ -22,6 +23,7 @@ export default function ExpenseForm({
   form,
   categories,
   currency = "BRL",
+  hideValues = false,
   onChange,
   editingId,
   onSubmit,
@@ -29,13 +31,30 @@ export default function ExpenseForm({
   onOpenCategoryManager,
   notice,
 }: Props) {
-  const totalValue = parseDecimal(form.value);
+  const rawValue = parseDecimal(form.value);
   const installments = Math.max(1, parseInt(form.installments, 10) || 1);
-  const hasValidTotal = !isNaN(totalValue) && totalValue > 0;
-  const monthlyValue = hasValidTotal ? totalValue / installments : 0;
+  const hasValidRawValue = !isNaN(rawValue) && rawValue > 0;
+
+  let totalValue = 0;
+  let monthlyValue = 0;
+
+  if (hasValidRawValue) {
+    if (form.valueMode === "installment") {
+      monthlyValue = rawValue;
+      totalValue = rawValue * installments;
+    } else {
+      totalValue = rawValue;
+      monthlyValue = rawValue / installments;
+    }
+  }
+
+  function handleSubmit() {
+    onSubmit(monthlyValue);
+  }
 
   return (
     <View style={styles.form}>
+      {/* Nome do Gasto */}
       <View style={styles.field}>
         <Text style={styles.label}>Nome do gasto</Text>
         <TextInput
@@ -47,9 +66,37 @@ export default function ExpenseForm({
         />
       </View>
 
+      {/* Seletor do Modo de Valor: Valor Total vs Por Parcela */}
+      <View style={styles.valueModeRow}>
+        <Text style={styles.label}>Modo de cálculo do valor:</Text>
+        <View style={styles.modeToggleGroup}>
+          <TouchableOpacity
+            style={[styles.modeToggleBtn, form.valueMode === "total" && styles.modeToggleBtnActive]}
+            onPress={() => onChange({ ...form, valueMode: "total" })}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.modeToggleText, form.valueMode === "total" && styles.modeToggleTextActive]}>
+              Valor Total
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeToggleBtn, form.valueMode === "installment" && styles.modeToggleBtnActive]}
+            onPress={() => onChange({ ...form, valueMode: "installment" })}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.modeToggleText, form.valueMode === "installment" && styles.modeToggleTextActive]}>
+              Por Parcela
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Campos de Valor e Parcelas */}
       <View style={styles.row}>
         <View style={[styles.field, { flex: 1 }]}>
-          <Text style={styles.label} numberOfLines={1}>Valor total da compra</Text>
+          <Text style={styles.label} numberOfLines={1}>
+            {form.valueMode === "installment" ? "Valor de cada parcela" : "Valor total da compra"}
+          </Text>
           <TextInput
             style={styles.input}
             placeholder="0,00"
@@ -72,13 +119,14 @@ export default function ExpenseForm({
         </View>
       </View>
 
-      {hasValidTotal && (
+      {/* Preview do Cálculo Financeiro */}
+      {hasValidRawValue && (
         <View style={styles.calcPreview}>
           <Calculator size={14} color={colors.brass} />
           <Text style={styles.calcPreviewText}>
             {installments > 1
-              ? `${installments}x de ${formatCurrency(monthlyValue, currency)} / mês`
-              : `${formatCurrency(totalValue, currency)} à vista (gasto único)`}
+              ? `${installments}x de ${formatCurrency(monthlyValue, currency, hideValues)} / mês (Total: ${formatCurrency(totalValue, currency, hideValues)})`
+              : `${formatCurrency(totalValue, currency, hideValues)} à vista`}
           </Text>
         </View>
       )}
@@ -124,6 +172,7 @@ export default function ExpenseForm({
         </ScrollView>
       </View>
 
+      {/* Mês Inicial */}
       <View style={styles.field}>
         <Text style={styles.label}>Mês inicial</Text>
         <MonthStepper
@@ -132,8 +181,9 @@ export default function ExpenseForm({
         />
       </View>
 
+      {/* Ações */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.submitBtn} onPress={onSubmit} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
           {editingId ? <Check size={14} color={colors.ink} /> : <Plus size={14} color={colors.ink} />}
           <Text style={styles.submitText}>{editingId ? "Salvar" : "Adicionar"}</Text>
         </TouchableOpacity>
@@ -169,6 +219,37 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     gap: 12,
+  },
+  valueModeRow: {
+    gap: 6,
+  },
+  modeToggleGroup: {
+    flexDirection: "row",
+    backgroundColor: colors.panel2,
+    borderRadius: 8,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  modeToggleBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: "center",
+    borderRadius: 6,
+  },
+  modeToggleBtnActive: {
+    backgroundColor: colors.brassSoft,
+    borderColor: colors.brass,
+    borderWidth: 1,
+  },
+  modeToggleText: {
+    fontSize: 11,
+    fontFamily: fonts.mono,
+    color: colors.paperDim,
+  },
+  modeToggleTextActive: {
+    color: colors.brass,
+    fontFamily: fonts.monoSemiBold,
   },
   row: {
     flexDirection: "row",

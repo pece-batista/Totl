@@ -10,8 +10,15 @@ export const CURRENCIES: Record<
   GBP: { label: "Libra Esterlina (£)", symbol: "£ ", thousandSep: ",", decimalSep: "." },
 };
 
-export function formatCurrency(value: number, currency: CurrencyCode = "BRL"): string {
+export function formatCurrency(
+  value: number,
+  currency: CurrencyCode = "BRL",
+  hideValues: boolean = false
+): string {
   const config = CURRENCIES[currency] || CURRENCIES.BRL;
+  if (hideValues) {
+    return `${config.symbol}••••••`;
+  }
   const negative = value < 0;
   const abs = Math.abs(value);
   const fixed = abs.toFixed(2);

@@ -12,6 +12,7 @@ type Props = {
   category?: Category | null;
   badge?: ExpenseStatus;
   currency?: CurrencyCode;
+  hideValues?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -29,6 +30,7 @@ export default function ExpenseRow({
   category,
   badge,
   currency = "BRL",
+  hideValues = false,
   onEdit,
   onDelete,
 }: Props) {
@@ -56,7 +58,7 @@ export default function ExpenseRow({
             </Text>
           </View>
         )}
-        {!badge && <Text style={styles.value}>{formatCurrency(value, currency)}</Text>}
+        {!badge && <Text style={styles.value}>{formatCurrency(value, currency, hideValues)}</Text>}
         <TouchableOpacity style={styles.iconBtn} onPress={onEdit} hitSlop={8}>
           <Pencil size={14} color={colors.paperDim} />
         </TouchableOpacity>

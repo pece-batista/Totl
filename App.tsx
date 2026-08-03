@@ -33,6 +33,7 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [currency, setCurrency] = useState<CurrencyCode>("BRL");
+  const [hideValues, setHideValues] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -131,6 +132,8 @@ export default function App() {
                 categories={categories}
                 setCategories={setCategories}
                 currency={currency}
+                hideValues={hideValues}
+                onToggleHideValues={() => setHideValues((v) => !v)}
                 onSignOut={signOutUser}
                 onRefresh={loadData}
               />
@@ -141,6 +144,7 @@ export default function App() {
                 expenses={expenses}
                 categories={categories}
                 currency={currency}
+                hideValues={hideValues}
                 onSignOut={signOutUser}
               />
             )}

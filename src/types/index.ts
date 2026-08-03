@@ -33,6 +33,7 @@ export type FormNotice = { type: "error" | "success"; text: string } | null;
 export type ExpenseFormState = {
   name: string;
   value: string;
+  valueMode: "total" | "installment";
   installments: string;
   startMonth: string;
   categoryId: string | null;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { Pencil, Check, X } from "lucide-react-native";
+import { Pencil, Check, X, Eye, EyeOff } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { formatCurrency, parseDecimal, formatCurrencyInput } from "../utils/currency";
 import type { CurrencyCode } from "../types";
@@ -8,11 +8,19 @@ import type { CurrencyCode } from "../types";
 type Props = {
   salary: number;
   currency?: CurrencyCode;
+  hideValues?: boolean;
+  onToggleHideValues?: () => void;
   onSave: (value: number) => void;
   onSignOut?: () => void;
 };
 
-export default function Header({ salary, currency = "BRL", onSave }: Props) {
+export default function Header({
+  salary,
+  currency = "BRL",
+  hideValues = false,
+  onToggleHideValues,
+  onSave,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -32,9 +40,26 @@ export default function Header({ salary, currency = "BRL", onSave }: Props) {
   return (
     <View style={styles.header}>
       <View style={{ flexShrink: 1 }}>
-        <Text style={styles.title}>Totl</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Totl</Text>
+          {onToggleHideValues && (
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={onToggleHideValues}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              {hideValues ? (
+                <EyeOff size={18} color={colors.rust} />
+              ) : (
+                <Eye size={18} color={colors.brass} />
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
         <Text style={styles.subtitle}>Salário fixo menos parcelas e gastos previstos</Text>
       </View>
+
       <View style={styles.salaryBox}>
         <Text style={styles.salaryLabel}>Salário fixo mensal</Text>
         {editing ? (
@@ -58,7 +83,7 @@ export default function Header({ salary, currency = "BRL", onSave }: Props) {
           </View>
         ) : (
           <View style={styles.salaryEditRow}>
-            <Text style={styles.salaryValue}>{formatCurrency(salary, currency)}</Text>
+            <Text style={styles.salaryValue}>{formatCurrency(salary, currency, hideValues)}</Text>
             <TouchableOpacity style={styles.iconBtn} onPress={startEdit} hitSlop={8}>
               <Pencil size={14} color={colors.paperDim} />
             </TouchableOpacity>
@@ -80,11 +105,23 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     gap: 12,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   title: {
     fontFamily: fonts.display,
     fontSize: 24,
     color: colors.paper,
     letterSpacing: 0.2,
+  },
+  eyeBtn: {
+    backgroundColor: colors.panel2,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    padding: 5,
   },
   subtitle: {
     color: colors.paperDim,

@@ -36,7 +36,7 @@ import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState
 const TIMELINE_LENGTH = 12;
 
 function makeEmptyForm(startMonth: string): ExpenseFormState {
-  return { name: "", value: "", installments: "1", startMonth, categoryId: null };
+  return { name: "", value: "", valueMode: "total", installments: "1", startMonth, categoryId: null };
 }
 
 type Props = {
@@ -47,6 +47,8 @@ type Props = {
   categories?: Category[];
   setCategories?: React.Dispatch<React.SetStateAction<Category[]>>;
   currency?: CurrencyCode;
+  hideValues?: boolean;
+  onToggleHideValues?: () => void;
   onSignOut?: () => void;
   onRefresh?: () => Promise<void>;
 };
@@ -59,6 +61,8 @@ export default function BudgetScreen({
   categories: propCategories,
   setCategories: propSetCategories,
   currency = "BRL",
+  hideValues = false,
+  onToggleHideValues,
   onSignOut,
   onRefresh,
 }: Props) {
@@ -74,20 +78,29 @@ export default function BudgetScreen({
   const [form, setForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const salary = propSalary !== undefined ? propSalary : internalSalary;
-  const setSalary = propSetSalary || setInternalSalary;
+  const isControlled = propSalary !== undefined;
 
-  const expenses = propExpenses !== undefined ? propExpenses : internalExpenses;
-  const setExpenses = propSetExpenses || setInternalExpenses;
+  const salary = isControlled ? propSalary : internalSalary;
+  const setSalary = isControlled
+    ? (val: number | ((prev: number) => number)) => {
+        if (typeof val === "function") propSetSalary?.(val);
+        else propSetSalary?.(val);
+      }
+    : setInternalSalary;
 
-  const categories = propCategories !== undefined ? propCategories : internalCategories;
-  const setCategories = propSetCategories || setInternalCategories;
+  const expenses = isControlled ? propExpenses || [] : internalExpenses;
+  const setExpenses = isControlled ? propSetExpenses! : setInternalExpenses;
+
+  const categories = isControlled ? propCategories || [] : internalCategories;
+  const setCategories = isControlled ? propSetCategories! : setInternalCategories;
+
+  const categoryMap = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories]
+  );
 
   const loadData = useCallback(async () => {
-    if (onRefresh) {
-      await onRefresh();
-      return;
-    }
+    if (isControlled) return;
     setInternalLoading(true);
     setError("");
     const [s, ex, cats] = await Promise.all([
@@ -99,70 +112,24 @@ export default function BudgetScreen({
     setInternalExpenses(ex);
     setInternalCategories(cats);
     setInternalLoading(false);
-  }, [onRefresh]);
+  }, [isControlled]);
 
   useEffect(() => {
-    if (propSalary === undefined) {
-      loadData();
-    }
-  }, [loadData, propSalary]);
+    loadData();
+  }, [loadData]);
 
-  const categoryMap = useMemo(() => {
-    return new Map(categories.map((c) => [c.id, c]));
-  }, [categories]);
-
-  async function persistSalary(value: number) {
-    setSalary(value);
-    const ok = await updateSalaryInDb(value);
-    if (!ok) setError("Não consegui salvar o salário no banco. Tenta de novo.");
-  }
-
-  async function saveExpense(exp: Expense, isNew: boolean) {
-    if (isNew) {
-      setExpenses((prev) => [...prev, exp]);
-    } else {
-      setExpenses((prev) => prev.map((item) => (item.id === exp.id ? exp : item)));
-    }
-    const ok = await saveExpenseToDb(exp);
-    if (!ok) {
-      setError("Erro ao salvar lançamento no Supabase.");
-    }
-  }
-
-  async function handleSaveCategory(category: Category) {
-    const saved = await saveCategoryToDb(category);
-    if (saved) {
-      setCategories((prev) => {
-        const idx = prev.findIndex((c) => c.id === saved.id);
-        if (idx >= 0) {
-          const updated = [...prev];
-          updated[idx] = saved;
-          return updated;
-        }
-        return [...prev, saved];
-      });
-    }
-  }
-
-  async function handleDeleteCategory(id: string) {
-    const ok = await deleteCategoryFromDb(id);
-    if (ok) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      setExpenses((prev) =>
-        prev.map((e) => (e.categoryId === id ? { ...e, categoryId: null } : e))
-      );
-    }
-  }
-
-  const selectedMonth = addMonths(todayMonthKey(), monthOffset);
+  const selectedMonth = useMemo(
+    () => addMonths(todayMonthKey(), monthOffset),
+    [monthOffset]
+  );
 
   const activeExpensesForMonth = useCallback(
-    (monthKey: string): ActiveExpense[] => {
+    (mk: string): ActiveExpense[] => {
       const result: ActiveExpense[] = [];
       for (const e of expenses) {
-        const idx = monthDiff(e.startMonth, monthKey);
-        if (idx >= 0 && idx < e.installments) {
-          result.push({ ...e, currentInstallment: idx + 1 });
+        const diff = monthDiff(e.startMonth, mk);
+        if (diff >= 0 && diff < e.installments) {
+          result.push({ ...e, currentInstallment: diff + 1 });
         }
       }
       return result;
@@ -175,7 +142,11 @@ export default function BudgetScreen({
     [activeExpensesForMonth, selectedMonth]
   );
 
-  const committed = monthActive.reduce((sum, e) => sum + e.value, 0);
+  const committed = useMemo(
+    () => monthActive.reduce((sum, e) => sum + e.value, 0),
+    [monthActive]
+  );
+
   const free = salary - committed;
 
   const timeline: MonthSummary[] = useMemo(() => {
@@ -192,14 +163,14 @@ export default function BudgetScreen({
     setEditingId(null);
   }
 
-  function handleSubmit() {
+  function handleSubmit(calculatedMonthlyValue?: number) {
     setFormNotice(null);
     if (!form.name.trim()) {
       setFormNotice({ type: "error", text: "Dá um nome pro gasto (ex: Mercado, Notebook...)." });
       return;
     }
-    const totalValue = parseDecimal(form.value);
-    if (isNaN(totalValue) || totalValue <= 0) {
+    const rawValue = parseDecimal(form.value);
+    if (isNaN(rawValue) || rawValue <= 0) {
       setFormNotice({ type: "error", text: "O valor precisa ser um número maior que zero (ex: 1200,00)." });
       return;
     }
@@ -208,7 +179,13 @@ export default function BudgetScreen({
       return;
     }
     const installments = Math.max(1, parseInt(form.installments, 10) || 1);
-    const monthlyValue = totalValue / installments;
+    
+    let monthlyValue = 0;
+    if (typeof calculatedMonthlyValue === "number" && calculatedMonthlyValue > 0) {
+      monthlyValue = calculatedMonthlyValue;
+    } else {
+      monthlyValue = form.valueMode === "installment" ? rawValue : rawValue / installments;
+    }
 
     if (editingId) {
       const updatedExpense: Expense = {
@@ -243,6 +220,7 @@ export default function BudgetScreen({
     setForm({
       name: exp.name,
       value: formatCurrencyInput(String(totalCents)),
+      valueMode: "total",
       installments: String(exp.installments),
       startMonth: exp.startMonth,
       categoryId: exp.categoryId || null,
@@ -258,36 +236,85 @@ export default function BudgetScreen({
     if (editingId === id) resetForm();
   }
 
-  function expenseStatus(exp: Expense): ExpenseStatus {
-    const diff = monthDiff(exp.startMonth, todayMonthKey());
-    if (diff >= exp.installments) return { label: "Quitado", tone: "dim" };
-    if (diff < 0) return { label: `Começa em ${monthLabel(exp.startMonth)}`, tone: "brass" };
-    return { label: `Parcela ${diff + 1}/${exp.installments}`, tone: "rust" };
+  async function persistSalary(val: number) {
+    setSalary(val);
+    await updateSalaryInDb(val);
   }
 
-  if (internalLoading) {
+  async function saveExpense(exp: Expense, isNew: boolean) {
+    if (isNew) {
+      setExpenses((prev) => [exp, ...prev]);
+    } else {
+      setExpenses((prev) => prev.map((e) => (e.id === exp.id ? exp : e)));
+    }
+    await saveExpenseToDb(exp);
+  }
+
+  async function handleSaveCategory(category: Category) {
+    const saved = await saveCategoryToDb(category);
+    if (saved) {
+      setCategories((prev) => {
+        const idx = prev.findIndex((c) => c.id === saved.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = saved;
+          return updated;
+        }
+        return [...prev, saved];
+      });
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    const ok = await deleteCategoryFromDb(id);
+    if (ok) {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setExpenses((prev) =>
+        prev.map((e) => (e.categoryId === id ? { ...e, categoryId: null } : e))
+      );
+    }
+  }
+
+  function getStatus(exp: Expense, currentMonthKey: string): ExpenseStatus {
+    const startDiff = monthDiff(exp.startMonth, currentMonthKey);
+    if (startDiff < 0) {
+      return { label: `Começa em ${monthLabel(exp.startMonth)}`, tone: "dim" };
+    }
+    const inst = startDiff + 1;
+    if (inst > exp.installments) {
+      return { label: "Quitado", tone: "brass" };
+    }
+    return { label: `Parcela ${inst}/${exp.installments}`, tone: "rust" };
+  }
+
+  if (!isControlled && internalLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator color={colors.brass} />
-        <Text style={styles.loadingText}>Carregando seu orçamento...</Text>
-      </SafeAreaView>
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.brass} />
+      </View>
     );
   }
-
-  const sortedExpenses = expenses.slice().sort((a, b) => (a.startMonth < b.startMonth ? -1 : 1));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Header salary={salary} currency={currency} onSave={persistSalary} onSignOut={onSignOut} />
+          <Header
+            salary={salary}
+            currency={currency}
+            hideValues={hideValues}
+            onToggleHideValues={onToggleHideValues}
+            onSave={persistSalary}
+            onSignOut={onSignOut}
+          />
 
           {!!error && (
             <View style={styles.errorBanner}>
@@ -314,9 +341,16 @@ export default function BudgetScreen({
             expenses={monthActive}
             categoryMap={categoryMap}
             currency={currency}
+            hideValues={hideValues}
           />
 
-          <SummaryGrid salary={salary} committed={committed} free={free} currency={currency} />
+          <SummaryGrid
+            salary={salary}
+            committed={committed}
+            free={free}
+            currency={currency}
+            hideValues={hideValues}
+          />
 
           <SectionLabel>Gastos deste mês</SectionLabel>
           <View style={styles.list}>
@@ -333,6 +367,7 @@ export default function BudgetScreen({
                   value={e.value}
                   category={e.categoryId ? categoryMap.get(e.categoryId) : null}
                   currency={currency}
+                  hideValues={hideValues}
                   onEdit={() => handleEdit(e)}
                   onDelete={() => handleDelete(e.id)}
                 />
@@ -345,6 +380,7 @@ export default function BudgetScreen({
             form={form}
             categories={categories}
             currency={currency}
+            hideValues={hideValues}
             onChange={setForm}
             editingId={editingId}
             onSubmit={handleSubmit}
@@ -353,51 +389,48 @@ export default function BudgetScreen({
             notice={formNotice}
           />
 
-          <TouchableOpacity onPress={() => setShowAll(!showAll)} style={styles.toggleAll}>
-            <Text style={styles.toggleAllText}>
-              {showAll ? "Ocultar" : "Ver"} todos os lançamentos cadastrados ({expenses.length})
-            </Text>
-          </TouchableOpacity>
+          {/* Lista Completa */}
+          <View style={styles.allExpensesHeader}>
+            <SectionLabel>Todos os lançamentos ({expenses.length})</SectionLabel>
+            <TouchableOpacity onPress={() => setShowAll((v) => !v)}>
+              <Text style={styles.toggleText}>{showAll ? "Ocultar" : "Mostrar todos"}</Text>
+            </TouchableOpacity>
+          </View>
 
           {showAll && (
             <View style={styles.list}>
-              {sortedExpenses.length === 0 ? (
+              {expenses.length === 0 ? (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyText}>Nenhum lançamento cadastrado ainda.</Text>
+                  <Text style={styles.emptyText}>Nenhum gasto cadastrado no sistema.</Text>
                 </View>
               ) : (
-                sortedExpenses.map((exp) => {
-                  const status = expenseStatus(exp);
-                  return (
-                    <ExpenseRow
-                      key={exp.id}
-                      name={exp.name}
-                      meta={
-                        exp.installments > 1
-                          ? `${formatCurrency(exp.value)}/mês (${exp.installments}x = Total ${formatCurrency(exp.value * exp.installments)}) desde ${monthLabel(exp.startMonth)}`
-                          : `${formatCurrency(exp.value)} à vista desde ${monthLabel(exp.startMonth)}`
-                      }
-                      value={exp.value}
-                      category={exp.categoryId ? categoryMap.get(exp.categoryId) : null}
-                      badge={status}
-                      onEdit={() => handleEdit(exp)}
-                      onDelete={() => handleDelete(exp.id)}
-                    />
-                  );
-                })
+                expenses.map((e) => (
+                  <ExpenseRow
+                    key={e.id}
+                    name={e.name}
+                    meta={`Total: ${formatCurrency(e.value * e.installments, currency, hideValues)} • ${monthLabel(e.startMonth)}`}
+                    value={e.value}
+                    category={e.categoryId ? categoryMap.get(e.categoryId) : null}
+                    badge={getStatus(e, selectedMonth)}
+                    currency={currency}
+                    hideValues={hideValues}
+                    onEdit={() => handleEdit(e)}
+                    onDelete={() => handleDelete(e.id)}
+                  />
+                ))
               )}
             </View>
           )}
+
+          <CategoriesModal
+            visible={categoryModalVisible}
+            categories={categories}
+            onClose={() => setCategoryModalVisible(false)}
+            onSaveCategory={handleSaveCategory}
+            onDeleteCategory={handleDeleteCategory}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <CategoriesModal
-        visible={categoryModalVisible}
-        categories={categories}
-        onClose={() => setCategoryModalVisible(false)}
-        onSaveCategory={handleSaveCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
     </SafeAreaView>
   );
 }
@@ -407,61 +440,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.ink,
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 160,
-  },
-  monthHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  loadingContainer: {
+  loading: {
     flex: 1,
     backgroundColor: colors.ink,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
   },
-  loadingText: {
-    fontFamily: fonts.mono,
-    color: colors.paperDim,
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
   },
   errorBanner: {
     backgroundColor: colors.rustSoft,
     borderWidth: 1,
     borderColor: colors.rust,
     borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    padding: 10,
     marginBottom: 16,
   },
   errorText: {
     color: colors.rust,
     fontSize: 13,
   },
+  monthHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
   list: {
     gap: 8,
     marginBottom: 24,
   },
   empty: {
+    backgroundColor: colors.panel,
     borderWidth: 1,
     borderColor: colors.line,
-    borderStyle: "dashed",
     borderRadius: 10,
-    padding: 18,
+    padding: 16,
     alignItems: "center",
   },
   emptyText: {
     color: colors.paperDim,
     fontSize: 13,
   },
-  toggleAll: {
-    marginBottom: 10,
+  allExpensesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    marginBottom: 8,
   },
-  toggleAllText: {
+  toggleText: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
     color: colors.brass,
-    fontSize: 12,
   },
 });

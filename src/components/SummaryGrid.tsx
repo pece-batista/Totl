@@ -9,18 +9,26 @@ type Props = {
   committed: number;
   free?: number;
   currency?: CurrencyCode;
+  hideValues?: boolean;
 };
 
-export default function SummaryGrid({ salary, committed, currency = "BRL" }: Props) {
+export default function SummaryGrid({
+  salary,
+  committed,
+  currency = "BRL",
+  hideValues = false,
+}: Props) {
   return (
     <View style={styles.grid}>
       <View style={styles.stat}>
         <Text style={styles.label}>Salário</Text>
-        <Text style={styles.value}>{formatCurrency(salary, currency)}</Text>
+        <Text style={styles.value}>{formatCurrency(salary, currency, hideValues)}</Text>
       </View>
       <View style={styles.stat}>
         <Text style={styles.label}>Comprometido</Text>
-        <Text style={[styles.value, { color: colors.rust }]}>− {formatCurrency(committed, currency)}</Text>
+        <Text style={[styles.value, { color: colors.rust }]}>
+          − {formatCurrency(committed, currency, hideValues)}
+        </Text>
       </View>
     </View>
   );

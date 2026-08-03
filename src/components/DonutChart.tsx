@@ -12,6 +12,7 @@ type Props = {
   expenses: ActiveExpense[];
   categoryMap: Map<string, Category>;
   currency?: CurrencyCode;
+  hideValues?: boolean;
 };
 
 export default function DonutChart({
@@ -21,6 +22,7 @@ export default function DonutChart({
   expenses,
   categoryMap,
   currency = "BRL",
+  hideValues = false,
 }: Props) {
   const size = 230;
   const strokeWidth = 22;
@@ -125,10 +127,10 @@ export default function DonutChart({
         <View style={styles.centerContent}>
           <Text style={styles.centerLabel}>SALDO LIVRE</Text>
           <Text style={[styles.centerValue, { color: free >= 0 ? colors.jade : colors.rust }]}>
-            {formatCurrency(free, currency)}
+            {formatCurrency(free, currency, hideValues)}
           </Text>
           <Text style={styles.centerSub}>
-            {committed > 0 ? `${formatCurrency(committed, currency)} comprometidos` : "Nenhum gasto este mês"}
+            {committed > 0 ? `${formatCurrency(committed, currency, hideValues)} comprometidos` : "Nenhum gasto este mês"}
           </Text>
         </View>
       </View>
@@ -143,7 +145,8 @@ export default function DonutChart({
                 <View style={[styles.legendDot, { backgroundColor: slice.color }]} />
                 <Text style={styles.legendName}>{slice.name}</Text>
                 <Text style={styles.legendValue}>
-                  {formatCurrency(slice.total, currency)} <Text style={styles.legendPercent}>({percent}%)</Text>
+                  {formatCurrency(slice.total, currency, hideValues)}{" "}
+                  <Text style={styles.legendPercent}>({percent}%)</Text>
                 </Text>
               </View>
             );

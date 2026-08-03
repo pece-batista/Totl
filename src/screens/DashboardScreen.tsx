@@ -22,6 +22,7 @@ type Props = {
   expenses: Expense[];
   categories: Category[];
   currency?: CurrencyCode;
+  hideValues?: boolean;
   onSignOut?: () => void;
 };
 
@@ -30,6 +31,7 @@ export default function DashboardScreen({
   expenses,
   categories,
   currency = "BRL",
+  hideValues = false,
   onSignOut,
 }: Props) {
   const [monthOffset, setMonthOffset] = useState(0);
@@ -142,6 +144,7 @@ export default function DashboardScreen({
           committed={currentSummary.committed}
           free={currentSummary.free}
           currency={currency}
+          hideValues={hideValues}
         />
 
         {/* Cards de Métricas Analíticas */}
@@ -152,7 +155,9 @@ export default function DashboardScreen({
               <TrendingUp size={16} color={colors.brass} />
               <Text style={styles.metricLabel}>Média Mensal Comprometida</Text>
             </View>
-            <Text style={styles.metricValue}>{formatCurrency(averageMonthlyCommitted, currency)}</Text>
+            <Text style={styles.metricValue}>
+              {formatCurrency(averageMonthlyCommitted, currency, hideValues)}
+            </Text>
             <Text style={styles.metricSub}>Média estimada nos próximos 12 meses</Text>
           </View>
 
@@ -165,7 +170,7 @@ export default function DashboardScreen({
               {monthLabel(highestCommittedMonth.monthKey)}
             </Text>
             <Text style={styles.metricSub}>
-              {formatCurrency(highestCommittedMonth.committed, currency)} comprometidos
+              {formatCurrency(highestCommittedMonth.committed, currency, hideValues)} comprometidos
             </Text>
           </View>
         </View>
@@ -193,7 +198,7 @@ export default function DashboardScreen({
                       <Text style={styles.catName}>{catName}</Text>
                     </View>
                     <Text style={styles.catTotal}>
-                      {formatCurrency(item.total, currency)}{" "}
+                      {formatCurrency(item.total, currency, hideValues)}{" "}
                       <Text style={styles.catPercent}>({percentage}%)</Text>
                     </Text>
                   </View>
