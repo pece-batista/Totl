@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Wallet, LayoutDashboard, Settings } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 
@@ -11,8 +12,11 @@ type Props = {
 };
 
 export default function BottomNav({ activeTab, onTabChange }: Props) {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(10, insets.bottom);
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <TouchableOpacity
         style={[styles.tab, activeTab === "budget" && styles.tabActive]}
         onPress={() => onTabChange("budget")}
@@ -79,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingVertical: 8,
+    paddingTop: 10,
     paddingHorizontal: 12,
     justifyContent: "space-around",
     alignItems: "center",

@@ -49,7 +49,7 @@ export default function ExpenseForm({
 
       <View style={styles.row}>
         <View style={[styles.field, { flex: 1 }]}>
-          <Text style={styles.label}>Valor total da compra</Text>
+          <Text style={styles.label} numberOfLines={1}>Valor total da compra</Text>
           <TextInput
             style={styles.input}
             placeholder="0,00"
@@ -60,7 +60,7 @@ export default function ExpenseForm({
           />
         </View>
         <View style={[styles.field, { flex: 1 }]}>
-          <Text style={styles.label}>Parcelas (1 = à vista)</Text>
+          <Text style={styles.label} numberOfLines={1}>Parcelas (1 = à vista)</Text>
           <TextInput
             style={styles.input}
             placeholder="1"
@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 10,
+    alignItems: "flex-end",
   },
   field: {
     gap: 4,
