@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -23,11 +24,12 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
-  X,
+  Fingerprint,
 } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { supabase } from "../services/supabase";
 import { formatCurrency, formatCurrencyInput, parseDecimal, CURRENCIES } from "../utils/currency";
+import { checkBiometricsAvailable, isBiometricEnabled, setBiometricEnabled } from "../services/biometrics";
 import SectionLabel from "../components/SectionLabel";
 import type { CurrencyCode } from "../types";
 
@@ -57,6 +59,10 @@ export default function SettingsScreen({
   const [salaryInput, setSalaryInput] = useState(formatCurrencyInput(String(Math.round(salary * 100))));
   const [savingSalary, setSavingSalary] = useState(false);
 
+  // Biometria
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+
   // Currency Dropdown State
   const [currencyDropdownVisible, setCurrencyDropdownVisible] = useState(false);
 
@@ -66,15 +72,32 @@ export default function SettingsScreen({
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    async function loadUser() {
+    async function loadUserAndBio() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
         const name = data.user.user_metadata?.username || data.user.email || "Usuário";
         setUsername(name);
       }
+      const bioAvail = await checkBiometricsAvailable();
+      setBiometricAvailable(bioAvail.available);
+
+      const bioEnabled = await isBiometricEnabled();
+      setBiometricOn(bioEnabled);
     }
-    loadUser();
+    loadUserAndBio();
   }, []);
+
+  async function handleToggleBiometric(value: boolean) {
+    setBiometricOn(value);
+    if (!value) {
+      await setBiometricEnabled(false);
+    } else {
+      Alert.alert(
+        "Login por Biometria",
+        "Ao entrar com seu usuário e senha no próximo acesso, sua biometria será associada para facilitar o login!"
+      );
+    }
+  }
 
   async function handleSaveSalary() {
     const num = parseDecimal(salaryInput);
@@ -172,7 +195,7 @@ export default function SettingsScreen({
         </TouchableOpacity>
 
         {/* 3. PREFERÊNCIAS & SEGURANÇA */}
-        <SectionLabel>Informações & Moeda</SectionLabel>
+        <SectionLabel>Informações & Segurança</SectionLabel>
         <View style={styles.card}>
           {/* Seletor Dropdown de Moeda */}
           <TouchableOpacity
@@ -187,6 +210,25 @@ export default function SettingsScreen({
               <ChevronDown size={14} color={colors.brass} />
             </View>
           </TouchableOpacity>
+
+          {biometricAvailable && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.infoRow}>
+                <Fingerprint size={16} color={colors.brass} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.infoLabel}>Login por Biometria</Text>
+                  <Text style={styles.userSub}>Usar digital para entrar no app</Text>
+                </View>
+                <Switch
+                  value={biometricOn}
+                  onValueChange={handleToggleBiometric}
+                  trackColor={{ false: colors.line, true: colors.brass }}
+                  thumbColor={biometricOn ? colors.ink : colors.paperDim}
+                />
+              </View>
+            </>
+          )}
 
           <View style={styles.divider} />
 

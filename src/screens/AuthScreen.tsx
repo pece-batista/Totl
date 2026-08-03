@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,16 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Eye, EyeOff } from "lucide-react-native";
+import { Eye, EyeOff, Fingerprint } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { signInUser, signUpUser } from "../services/auth";
+import {
+  checkBiometricsAvailable,
+  isBiometricEnabled,
+  getSavedBiometricCredentials,
+  promptBiometricAuth,
+  setBiometricEnabled,
+} from "../services/biometrics";
 
 type Mode = "login" | "signup";
 
@@ -25,10 +32,44 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [hasBiometricBtn, setHasBiometricBtn] = useState(false);
+
+  useEffect(() => {
+    async function initBiometrics() {
+      const { available } = await checkBiometricsAvailable();
+      const enabled = await isBiometricEnabled();
+      const credentials = await getSavedBiometricCredentials();
+      if (available && enabled && credentials) {
+        setHasBiometricBtn(true);
+      }
+    }
+    initBiometrics();
+  }, []);
 
   function switchMode(newMode: Mode) {
     setMode(newMode);
     setErrorMsg("");
+  }
+
+  async function handleBiometricLogin() {
+    setErrorMsg("");
+    const credentials = await getSavedBiometricCredentials();
+    if (!credentials) {
+      setErrorMsg("Nenhuma credencial gravada para biometria.");
+      return;
+    }
+
+    const authenticated = await promptBiometricAuth("Confirme sua digital para entrar no Totl");
+    if (authenticated) {
+      setLoading(true);
+      try {
+        await signInUser(credentials.username, credentials.pass);
+      } catch (err: any) {
+        setErrorMsg(err.message || "Erro ao entrar via biometria.");
+      } finally {
+        setLoading(false);
+      }
+    }
   }
 
   async function handleSubmit() {
@@ -38,6 +79,10 @@ export default function AuthScreen() {
     try {
       if (mode === "login") {
         await signInUser(username, password);
+        const { available } = await checkBiometricsAvailable();
+        if (available) {
+          await setBiometricEnabled(true, { username, pass: password });
+        }
       } else {
         await signUpUser(fullName, username, password);
       }
@@ -154,6 +199,18 @@ export default function AuthScreen() {
                 </Text>
               )}
             </TouchableOpacity>
+
+            {mode === "login" && hasBiometricBtn && (
+              <TouchableOpacity
+                style={styles.biometricBtn}
+                onPress={handleBiometricLogin}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Fingerprint size={20} color={colors.brass} />
+                <Text style={styles.biometricBtnText}>Entrar com Biometria</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.footerToggle}
@@ -294,7 +351,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   buttonLogin: {
     backgroundColor: colors.jade,
@@ -307,6 +364,23 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     letterSpacing: 0.5,
+  },
+  biometricBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.brassSoft,
+    borderWidth: 1,
+    borderColor: colors.brass,
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  biometricBtnText: {
+    fontFamily: fonts.monoSemiBold,
+    color: colors.brass,
+    fontSize: 13,
   },
   footerToggle: {
     alignItems: "center",
