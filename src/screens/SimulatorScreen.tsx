@@ -302,7 +302,7 @@ export default function SimulatorScreen({
         >
           <PlusCircle size={18} color={colors.ink} />
           <Text style={styles.commitBtnText}>
-            Efetivar e Adicionar ao Orçamento Real
+            Efetivar no Orçamento Real
           </Text>
         </TouchableOpacity>
       </ScrollView>

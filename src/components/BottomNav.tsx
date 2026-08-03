@@ -13,7 +13,7 @@ type Props = {
 
 export default function BottomNav({ activeTab, onTabChange }: Props) {
   const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(10, insets.bottom);
+  const bottomPadding = Math.max(8, insets.bottom);
 
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>
@@ -31,6 +31,7 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
             styles.tabText,
             activeTab === "budget" && styles.tabTextActive,
           ]}
+          numberOfLines={1}
         >
           Orçamento
         </Text>
@@ -50,6 +51,7 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
             styles.tabText,
             activeTab === "dashboard" && styles.tabTextActive,
           ]}
+          numberOfLines={1}
         >
           Dashboard
         </Text>
@@ -69,6 +71,7 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
             styles.tabText,
             activeTab === "simulator" && styles.tabTextActive,
           ]}
+          numberOfLines={1}
         >
           Simular
         </Text>
@@ -88,6 +91,7 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
             styles.tabText,
             activeTab === "settings" && styles.tabTextActive,
           ]}
+          numberOfLines={1}
         >
           Ajustes
         </Text>
@@ -102,25 +106,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     borderTopWidth: 1,
     borderTopColor: colors.line,
-    paddingTop: 10,
-    paddingHorizontal: 8,
-    justifyContent: "space-around",
+    paddingTop: 8,
+    paddingHorizontal: 4,
+    justifyContent: "space-between",
     alignItems: "center",
   },
   tab: {
-    flexDirection: "row",
+    flex: 1,
     alignItems: "center",
-    gap: 4,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 999,
+    justifyContent: "center",
+    gap: 3,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    borderRadius: 8,
   },
   tabActive: {
     backgroundColor: colors.brassSoft,
   },
   tabText: {
     fontFamily: fonts.monoSemiBold,
-    fontSize: 11,
+    fontSize: 10,
     color: colors.paperDim,
   },
   tabTextActive: {
