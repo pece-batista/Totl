@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { Pencil, Check, X, LogOut } from "lucide-react-native";
+import { Pencil, Check, X } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { formatCurrency, parseDecimal, formatCurrencyInput } from "../utils/currency";
+import type { CurrencyCode } from "../types";
 
 type Props = {
   salary: number;
+  currency?: CurrencyCode;
   onSave: (value: number) => void;
   onSignOut?: () => void;
 };
 
-export default function Header({ salary, onSave, onSignOut }: Props) {
+export default function Header({ salary, currency = "BRL", onSave }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -30,14 +32,7 @@ export default function Header({ salary, onSave, onSignOut }: Props) {
   return (
     <View style={styles.header}>
       <View style={{ flexShrink: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Text style={styles.title}>Totl</Text>
-          {onSignOut && (
-            <TouchableOpacity style={styles.signOutBtn} onPress={onSignOut} hitSlop={8}>
-              <LogOut size={16} color={colors.rust} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <Text style={styles.title}>Totl</Text>
         <Text style={styles.subtitle}>Salário fixo menos parcelas e gastos previstos</Text>
       </View>
       <View style={styles.salaryBox}>
@@ -63,7 +58,7 @@ export default function Header({ salary, onSave, onSignOut }: Props) {
           </View>
         ) : (
           <View style={styles.salaryEditRow}>
-            <Text style={styles.salaryValue}>{formatCurrency(salary)}</Text>
+            <Text style={styles.salaryValue}>{formatCurrency(salary, currency)}</Text>
             <TouchableOpacity style={styles.iconBtn} onPress={startEdit} hitSlop={8}>
               <Pencil size={14} color={colors.paperDim} />
             </TouchableOpacity>
@@ -132,10 +127,5 @@ const styles = StyleSheet.create({
   iconBtn: {
     padding: 4,
     borderRadius: 6,
-  },
-  signOutBtn: {
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: colors.rustSoft,
   },
 });

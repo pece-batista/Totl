@@ -31,7 +31,7 @@ import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
 import CategoriesModal from "../components/CategoriesModal";
 import SectionLabel from "../components/SectionLabel";
-import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category } from "../types";
+import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category, CurrencyCode } from "../types";
 
 const TIMELINE_LENGTH = 12;
 
@@ -46,6 +46,7 @@ type Props = {
   setExpenses?: React.Dispatch<React.SetStateAction<Expense[]>>;
   categories?: Category[];
   setCategories?: React.Dispatch<React.SetStateAction<Category[]>>;
+  currency?: CurrencyCode;
   onSignOut?: () => void;
   onRefresh?: () => Promise<void>;
 };
@@ -57,6 +58,7 @@ export default function BudgetScreen({
   setExpenses: propSetExpenses,
   categories: propCategories,
   setCategories: propSetCategories,
+  currency = "BRL",
   onSignOut,
   onRefresh,
 }: Props) {
@@ -285,7 +287,7 @@ export default function BudgetScreen({
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets={true}
         >
-          <Header salary={salary} onSave={persistSalary} onSignOut={onSignOut} />
+          <Header salary={salary} currency={currency} onSave={persistSalary} onSignOut={onSignOut} />
 
           {!!error && (
             <View style={styles.errorBanner}>
@@ -311,9 +313,10 @@ export default function BudgetScreen({
             free={free}
             expenses={monthActive}
             categoryMap={categoryMap}
+            currency={currency}
           />
 
-          <SummaryGrid salary={salary} committed={committed} free={free} />
+          <SummaryGrid salary={salary} committed={committed} free={free} currency={currency} />
 
           <SectionLabel>Gastos deste mês</SectionLabel>
           <View style={styles.list}>
@@ -329,6 +332,7 @@ export default function BudgetScreen({
                   meta={e.installments > 1 ? `Parcela ${e.currentInstallment}/${e.installments}` : "Gasto único"}
                   value={e.value}
                   category={e.categoryId ? categoryMap.get(e.categoryId) : null}
+                  currency={currency}
                   onEdit={() => handleEdit(e)}
                   onDelete={() => handleDelete(e.id)}
                 />
@@ -340,6 +344,7 @@ export default function BudgetScreen({
           <ExpenseForm
             form={form}
             categories={categories}
+            currency={currency}
             onChange={setForm}
             editingId={editingId}
             onSubmit={handleSubmit}

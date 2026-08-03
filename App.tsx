@@ -6,15 +6,22 @@ import { supabase } from "./src/services/supabase";
 import { signOutUser } from "./src/services/auth";
 import {
   fetchSalaryFromDb,
+  updateSalaryInDb,
   fetchExpensesFromDb,
   fetchCategoriesFromDb,
+  saveCategoryToDb,
+  deleteCategoryFromDb,
+  deleteAllExpensesFromDb,
+  deleteUserAccountFromDb,
 } from "./src/services/db";
 import BudgetScreen from "./src/screens/BudgetScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
+import SettingsScreen from "./src/screens/SettingsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
+import CategoriesModal from "./src/components/CategoriesModal";
 import BottomNav, { type TabType } from "./src/components/BottomNav";
 import { colors } from "./src/theme/colors";
-import type { Expense, Category } from "./src/types";
+import type { Expense, Category, CurrencyCode } from "./src/types";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -25,6 +32,8 @@ export default function App() {
   const [salary, setSalary] = useState(0);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [currency, setCurrency] = useState<CurrencyCode>("BRL");
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!session) return;
@@ -60,6 +69,45 @@ export default function App() {
     }
   }, [session, loadData]);
 
+  async function handleSaveSalary(val: number) {
+    setSalary(val);
+    await updateSalaryInDb(val);
+  }
+
+  async function handleClearExpenses() {
+    setExpenses([]);
+    await deleteAllExpensesFromDb();
+  }
+
+  async function handleDeleteAccount() {
+    await deleteUserAccountFromDb();
+  }
+
+  async function handleSaveCategory(category: Category) {
+    const saved = await saveCategoryToDb(category);
+    if (saved) {
+      setCategories((prev) => {
+        const idx = prev.findIndex((c) => c.id === saved.id);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = saved;
+          return updated;
+        }
+        return [...prev, saved];
+      });
+    }
+  }
+
+  async function handleDeleteCategory(id: string) {
+    const ok = await deleteCategoryFromDb(id);
+    if (ok) {
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setExpenses((prev) =>
+        prev.map((e) => (e.categoryId === id ? { ...e, categoryId: null } : e))
+      );
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -74,7 +122,7 @@ export default function App() {
       {session ? (
         <View style={styles.appContainer}>
           <View style={styles.screenContainer}>
-            {activeTab === "budget" ? (
+            {activeTab === "budget" && (
               <BudgetScreen
                 salary={salary}
                 setSalary={setSalary}
@@ -82,19 +130,43 @@ export default function App() {
                 setExpenses={setExpenses}
                 categories={categories}
                 setCategories={setCategories}
+                currency={currency}
                 onSignOut={signOutUser}
                 onRefresh={loadData}
               />
-            ) : (
+            )}
+            {activeTab === "dashboard" && (
               <DashboardScreen
                 salary={salary}
                 expenses={expenses}
                 categories={categories}
+                currency={currency}
                 onSignOut={signOutUser}
               />
             )}
+            {activeTab === "settings" && (
+              <SettingsScreen
+                salary={salary}
+                currency={currency}
+                onSelectCurrency={setCurrency}
+                onSaveSalary={handleSaveSalary}
+                onOpenCategoryManager={() => setCategoryModalVisible(true)}
+                onSignOut={signOutUser}
+                onClearExpenses={handleClearExpenses}
+                onDeleteAccount={handleDeleteAccount}
+              />
+            )}
           </View>
+
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+          <CategoriesModal
+            visible={categoryModalVisible}
+            categories={categories}
+            onClose={() => setCategoryModalVisible(false)}
+            onSaveCategory={handleSaveCategory}
+            onDeleteCategory={handleDeleteCategory}
+          />
         </View>
       ) : (
         <AuthScreen />

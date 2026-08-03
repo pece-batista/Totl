@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Pencil, Trash2 } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { formatCurrency } from "../utils/currency";
-import type { ExpenseStatus, Category } from "../types";
+import type { ExpenseStatus, Category, CurrencyCode } from "../types";
 
 type Props = {
   name: string;
@@ -11,6 +11,7 @@ type Props = {
   value: number;
   category?: Category | null;
   badge?: ExpenseStatus;
+  currency?: CurrencyCode;
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -21,7 +22,16 @@ const badgeColors: Record<ExpenseStatus["tone"], { bg: string; fg: string }> = {
   rust: { bg: colors.rustSoft, fg: colors.rust },
 };
 
-export default function ExpenseRow({ name, meta, value, category, badge, onEdit, onDelete }: Props) {
+export default function ExpenseRow({
+  name,
+  meta,
+  value,
+  category,
+  badge,
+  currency = "BRL",
+  onEdit,
+  onDelete,
+}: Props) {
   return (
     <View style={styles.row}>
       <View style={styles.main}>
@@ -46,7 +56,7 @@ export default function ExpenseRow({ name, meta, value, category, badge, onEdit,
             </Text>
           </View>
         )}
-        {!badge && <Text style={styles.value}>{formatCurrency(value)}</Text>}
+        {!badge && <Text style={styles.value}>{formatCurrency(value, currency)}</Text>}
         <TouchableOpacity style={styles.iconBtn} onPress={onEdit} hitSlop={8}>
           <Pencil size={14} color={colors.paperDim} />
         </TouchableOpacity>

@@ -151,6 +151,43 @@ export async function deleteExpenseFromDb(id: string): Promise<boolean> {
   return true;
 }
 
+export async function deleteAllExpensesFromDb(): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await handleQueryWithRetry(async () =>
+    await supabase.from("expenses").delete().eq("user_id", user.id)
+  );
+
+  if (error) {
+    console.error("Erro ao apagar todos os gastos do Supabase:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteUserAccountFromDb(): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  await handleQueryWithRetry(async () =>
+    await supabase.from("expenses").delete().eq("user_id", user.id)
+  );
+  await handleQueryWithRetry(async () =>
+    await supabase.from("categories").delete().eq("user_id", user.id)
+  );
+  await handleQueryWithRetry(async () =>
+    await supabase.from("profiles").delete().eq("id", user.id)
+  );
+
+  await supabase.auth.signOut();
+  return true;
+}
+
 /* ============================================================================
    CATEGORIAS CUSTOMIZADAS
    ============================================================================ */
@@ -181,7 +218,6 @@ export async function fetchCategoriesFromDb(): Promise<Category[]> {
     return [];
   }
 
-  // Se o usuário ainda não tiver categorias, cria as padrão automaticamente
   if (!data || data.length === 0) {
     const created: Category[] = [];
     for (const def of DEFAULT_CATEGORIES) {

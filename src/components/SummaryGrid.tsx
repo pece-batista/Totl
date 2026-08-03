@@ -2,23 +2,25 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors, fonts } from "../theme/colors";
 import { formatCurrency } from "../utils/currency";
+import type { CurrencyCode } from "../types";
 
 type Props = {
   salary: number;
   committed: number;
   free?: number;
+  currency?: CurrencyCode;
 };
 
-export default function SummaryGrid({ salary, committed }: Props) {
+export default function SummaryGrid({ salary, committed, currency = "BRL" }: Props) {
   return (
     <View style={styles.grid}>
       <View style={styles.stat}>
         <Text style={styles.label}>Salário</Text>
-        <Text style={styles.value}>{formatCurrency(salary)}</Text>
+        <Text style={styles.value}>{formatCurrency(salary, currency)}</Text>
       </View>
       <View style={styles.stat}>
         <Text style={styles.label}>Comprometido</Text>
-        <Text style={[styles.value, { color: colors.rust }]}>− {formatCurrency(committed)}</Text>
+        <Text style={[styles.value, { color: colors.rust }]}>− {formatCurrency(committed, currency)}</Text>
       </View>
     </View>
   );

@@ -3,18 +3,17 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LogOut, TrendingUp, Calendar, Tag, ShieldCheck } from "lucide-react-native";
+import { TrendingUp, Calendar } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import { addMonths, monthDiff, monthLabel, todayMonthKey } from "../utils/date";
 import { formatCurrency } from "../utils/currency";
 import MonthRibbon from "../components/MonthRibbon";
 import SummaryGrid from "../components/SummaryGrid";
 import SectionLabel from "../components/SectionLabel";
-import type { Expense, MonthSummary, Category } from "../types";
+import type { Expense, MonthSummary, Category, CurrencyCode } from "../types";
 
 const TIMELINE_LENGTH = 12;
 
@@ -22,6 +21,7 @@ type Props = {
   salary: number;
   expenses: Expense[];
   categories: Category[];
+  currency?: CurrencyCode;
   onSignOut?: () => void;
 };
 
@@ -29,6 +29,7 @@ export default function DashboardScreen({
   salary,
   expenses,
   categories,
+  currency = "BRL",
   onSignOut,
 }: Props) {
   const [monthOffset, setMonthOffset] = useState(0);
@@ -118,11 +119,6 @@ export default function DashboardScreen({
           <View style={{ flexShrink: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Text style={styles.title}>Dashboard</Text>
-              {onSignOut && (
-                <TouchableOpacity style={styles.signOutBtn} onPress={onSignOut} hitSlop={8}>
-                  <LogOut size={16} color={colors.rust} />
-                </TouchableOpacity>
-              )}
             </View>
             <Text style={styles.subtitle}>Visão geral e projeção financeira de 12 meses</Text>
           </View>
@@ -145,6 +141,7 @@ export default function DashboardScreen({
           salary={salary}
           committed={currentSummary.committed}
           free={currentSummary.free}
+          currency={currency}
         />
 
         {/* Cards de Métricas Analíticas */}
@@ -155,7 +152,7 @@ export default function DashboardScreen({
               <TrendingUp size={16} color={colors.brass} />
               <Text style={styles.metricLabel}>Média Mensal Comprometida</Text>
             </View>
-            <Text style={styles.metricValue}>{formatCurrency(averageMonthlyCommitted)}</Text>
+            <Text style={styles.metricValue}>{formatCurrency(averageMonthlyCommitted, currency)}</Text>
             <Text style={styles.metricSub}>Média estimada nos próximos 12 meses</Text>
           </View>
 
@@ -168,7 +165,7 @@ export default function DashboardScreen({
               {monthLabel(highestCommittedMonth.monthKey)}
             </Text>
             <Text style={styles.metricSub}>
-              {formatCurrency(highestCommittedMonth.committed)} comprometidos
+              {formatCurrency(highestCommittedMonth.committed, currency)} comprometidos
             </Text>
           </View>
         </View>
@@ -196,7 +193,7 @@ export default function DashboardScreen({
                       <Text style={styles.catName}>{catName}</Text>
                     </View>
                     <Text style={styles.catTotal}>
-                      {formatCurrency(item.total)}{" "}
+                      {formatCurrency(item.total, currency)}{" "}
                       <Text style={styles.catPercent}>({percentage}%)</Text>
                     </Text>
                   </View>
@@ -247,11 +244,6 @@ const styles = StyleSheet.create({
     color: colors.paperDim,
     fontSize: 12,
     marginTop: 4,
-  },
-  signOutBtn: {
-    padding: 4,
-    borderRadius: 6,
-    backgroundColor: colors.rustSoft,
   },
   metricsGrid: {
     gap: 12,

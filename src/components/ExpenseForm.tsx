@@ -4,11 +4,12 @@ import { Plus, Check, Calculator, Settings } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 import MonthStepper from "./MonthStepper";
 import { parseDecimal, formatCurrency, formatCurrencyInput } from "../utils/currency";
-import type { ExpenseFormState, FormNotice, Category } from "../types";
+import type { ExpenseFormState, FormNotice, Category, CurrencyCode } from "../types";
 
 type Props = {
   form: ExpenseFormState;
   categories: Category[];
+  currency?: CurrencyCode;
   onChange: (form: ExpenseFormState) => void;
   editingId: string | null;
   onSubmit: () => void;
@@ -20,6 +21,7 @@ type Props = {
 export default function ExpenseForm({
   form,
   categories,
+  currency = "BRL",
   onChange,
   editingId,
   onSubmit,
@@ -75,8 +77,8 @@ export default function ExpenseForm({
           <Calculator size={14} color={colors.brass} />
           <Text style={styles.calcPreviewText}>
             {installments > 1
-              ? `${installments}x de ${formatCurrency(monthlyValue)} / mês`
-              : `${formatCurrency(totalValue)} à vista (gasto único)`}
+              ? `${installments}x de ${formatCurrency(monthlyValue, currency)} / mês`
+              : `${formatCurrency(totalValue, currency)} à vista (gasto único)`}
           </Text>
         </View>
       )}

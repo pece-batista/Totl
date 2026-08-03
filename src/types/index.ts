@@ -1,3 +1,5 @@
+export type CurrencyCode = "BRL" | "USD" | "EUR" | "GBP";
+
 export type Category = {
   id: string;
   name: string;
