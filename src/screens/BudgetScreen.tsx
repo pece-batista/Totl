@@ -27,11 +27,12 @@ import Header from "../components/Header";
 import DonutChart from "../components/DonutChart";
 import MonthStepper from "../components/MonthStepper";
 import SummaryGrid from "../components/SummaryGrid";
+import IncomesSection from "../components/IncomesSection";
 import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
 import CategoriesModal from "../components/CategoriesModal";
 import SectionLabel from "../components/SectionLabel";
-import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category, CurrencyCode } from "../types";
+import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category, CurrencyCode, Income } from "../types";
 
 const TIMELINE_LENGTH = 12;
 
@@ -46,6 +47,9 @@ type Props = {
   setExpenses?: React.Dispatch<React.SetStateAction<Expense[]>>;
   categories?: Category[];
   setCategories?: React.Dispatch<React.SetStateAction<Category[]>>;
+  incomes?: Income[];
+  onAddIncome?: (name: string, value: number, monthKey: string) => void;
+  onDeleteIncome?: (id: string) => void;
   currency?: CurrencyCode;
   hideValues?: boolean;
   onToggleHideValues?: () => void;
@@ -60,6 +64,9 @@ export default function BudgetScreen({
   setExpenses: propSetExpenses,
   categories: propCategories,
   setCategories: propSetCategories,
+  incomes = [],
+  onAddIncome,
+  onDeleteIncome,
   currency = "BRL",
   hideValues = false,
   onToggleHideValues,
@@ -147,16 +154,22 @@ export default function BudgetScreen({
     [monthActive]
   );
 
-  const free = salary - committed;
+  const monthExtraIncome = useMemo(
+    () => incomes.filter((i) => i.monthKey === selectedMonth).reduce((acc, i) => acc + i.value, 0),
+    [incomes, selectedMonth]
+  );
+
+  const free = salary + monthExtraIncome - committed;
 
   const timeline: MonthSummary[] = useMemo(() => {
     return Array.from({ length: TIMELINE_LENGTH }, (_, i) => {
       const mk = addMonths(todayMonthKey(), i);
       const active = activeExpensesForMonth(mk);
       const c = active.reduce((sum, e) => sum + e.value, 0);
-      return { monthKey: mk, committed: c, free: salary - c };
+      const extra = incomes.filter((inc) => inc.monthKey === mk).reduce((acc, inc) => acc + inc.value, 0);
+      return { monthKey: mk, committed: c, free: salary + extra - c, extraIncome: extra };
     });
-  }, [activeExpensesForMonth, salary]);
+  }, [activeExpensesForMonth, salary, incomes]);
 
   function resetForm() {
     setForm(makeEmptyForm(selectedMonth));
@@ -335,7 +348,7 @@ export default function BudgetScreen({
           </View>
 
           <DonutChart
-            salary={salary}
+            salary={salary + monthExtraIncome}
             committed={committed}
             free={free}
             expenses={monthActive}
@@ -346,10 +359,22 @@ export default function BudgetScreen({
 
           <SummaryGrid
             salary={salary}
+            extraIncome={monthExtraIncome}
             committed={committed}
             free={free}
             currency={currency}
             hideValues={hideValues}
+          />
+
+          {/* Seção de Rendas Extras do Mês */}
+          <IncomesSection
+            selectedMonth={selectedMonth}
+            monthLabel={monthLabel(selectedMonth)}
+            incomes={incomes}
+            currency={currency}
+            hideValues={hideValues}
+            onAddIncome={(name, value) => onAddIncome?.(name, value, selectedMonth)}
+            onDeleteIncome={(id) => onDeleteIncome?.(id)}
           />
 
           <SectionLabel>Gastos deste mês</SectionLabel>

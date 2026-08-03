@@ -17,10 +17,18 @@ export type Expense = {
 
 export type ActiveExpense = Expense & { currentInstallment: number };
 
+export type Income = {
+  id: string;
+  name: string;
+  value: number;
+  monthKey: string; // "YYYY-MM"
+};
+
 export type MonthSummary = {
   monthKey: string;
   committed: number;
   free: number;
+  extraIncome?: number;
 };
 
 export type ExpenseStatus = {

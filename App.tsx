@@ -13,6 +13,9 @@ import {
   deleteCategoryFromDb,
   deleteAllExpensesFromDb,
   deleteUserAccountFromDb,
+  fetchIncomesFromDb,
+  saveIncomeToDb,
+  deleteIncomeFromDb,
 } from "./src/services/db";
 import BudgetScreen from "./src/screens/BudgetScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
@@ -21,7 +24,7 @@ import AuthScreen from "./src/screens/AuthScreen";
 import CategoriesModal from "./src/components/CategoriesModal";
 import BottomNav, { type TabType } from "./src/components/BottomNav";
 import { colors } from "./src/theme/colors";
-import type { Expense, Category, CurrencyCode } from "./src/types";
+import type { Expense, Category, CurrencyCode, Income } from "./src/types";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -32,20 +35,23 @@ export default function App() {
   const [salary, setSalary] = useState(0);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
   const [currency, setCurrency] = useState<CurrencyCode>("BRL");
   const [hideValues, setHideValues] = useState(false);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!session) return;
-    const [s, ex, cats] = await Promise.all([
+    const [s, ex, cats, incs] = await Promise.all([
       fetchSalaryFromDb(),
       fetchExpensesFromDb(),
       fetchCategoriesFromDb(),
+      fetchIncomesFromDb(),
     ]);
     setSalary(s);
     setExpenses(ex);
     setCategories(cats);
+    setIncomes(incs);
   }, [session]);
 
   useEffect(() => {
@@ -82,6 +88,22 @@ export default function App() {
 
   async function handleDeleteAccount() {
     await deleteUserAccountFromDb();
+  }
+
+  async function handleAddIncome(name: string, value: number, monthKey: string) {
+    const newIncome: Income = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      value,
+      monthKey,
+    };
+    setIncomes((prev) => [newIncome, ...prev]);
+    await saveIncomeToDb(newIncome);
+  }
+
+  async function handleDeleteIncome(id: string) {
+    setIncomes((prev) => prev.filter((i) => i.id !== id));
+    await deleteIncomeFromDb(id);
   }
 
   async function handleSaveCategory(category: Category) {
@@ -131,6 +153,9 @@ export default function App() {
                 setExpenses={setExpenses}
                 categories={categories}
                 setCategories={setCategories}
+                incomes={incomes}
+                onAddIncome={handleAddIncome}
+                onDeleteIncome={handleDeleteIncome}
                 currency={currency}
                 hideValues={hideValues}
                 onToggleHideValues={() => setHideValues((v) => !v)}

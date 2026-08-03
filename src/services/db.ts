@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense, Category } from "../types";
+import type { Expense, Category, Income } from "../types";
 
 /**
  * Função helper de resiliência: se o banco retornar erro de JWT emitido no futuro (PGRST303)
@@ -181,10 +181,92 @@ export async function deleteUserAccountFromDb(): Promise<boolean> {
     await supabase.from("categories").delete().eq("user_id", user.id)
   );
   await handleQueryWithRetry(async () =>
+    await supabase.from("incomes").delete().eq("user_id", user.id)
+  );
+  await handleQueryWithRetry(async () =>
     await supabase.from("profiles").delete().eq("id", user.id)
   );
 
   await supabase.auth.signOut();
+  return true;
+}
+
+/* ============================================================================
+   RENDAS EXTRAS MENSAIS
+   ============================================================================ */
+
+export async function fetchIncomesFromDb(): Promise<Income[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await handleQueryWithRetry<any[]>(async () =>
+    await supabase
+      .from("incomes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+  );
+
+  if (error) {
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    value: Number(row.value),
+    monthKey: row.month_key,
+  }));
+}
+
+export async function saveIncomeToDb(income: Income): Promise<Income | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await handleQueryWithRetry<any>(async () =>
+    await supabase
+      .from("incomes")
+      .upsert({
+        id: income.id || undefined,
+        user_id: user.id,
+        name: income.name,
+        value: income.value,
+        month_key: income.monthKey,
+      })
+      .select()
+      .single()
+  );
+
+  if (error) {
+    console.error("Erro ao salvar renda extra no Supabase:", error);
+    return null;
+  }
+
+  return { id: data.id, name: data.name, value: Number(data.value), monthKey: data.month_key };
+}
+
+export async function deleteIncomeFromDb(id: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await handleQueryWithRetry(async () =>
+    await supabase
+      .from("incomes")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+  );
+
+  if (error) {
+    console.error("Erro ao excluir renda extra do Supabase:", error);
+    return false;
+  }
   return true;
 }
 
