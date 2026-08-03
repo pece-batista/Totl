@@ -9,6 +9,7 @@ import {
   updateSalaryInDb,
   fetchExpensesFromDb,
   fetchCategoriesFromDb,
+  saveExpenseToDb,
   saveCategoryToDb,
   deleteCategoryFromDb,
   deleteAllExpensesFromDb,
@@ -19,6 +20,7 @@ import {
 } from "./src/services/db";
 import BudgetScreen from "./src/screens/BudgetScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
+import SimulatorScreen from "./src/screens/SimulatorScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import CategoriesModal from "./src/components/CategoriesModal";
@@ -106,6 +108,25 @@ export default function App() {
     await deleteIncomeFromDb(id);
   }
 
+  async function handleCommitSimulatedExpense(
+    name: string,
+    value: number,
+    installments: number,
+    startMonth: string
+  ) {
+    const newExpense: Expense = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      value,
+      installments,
+      startMonth,
+      categoryId: null,
+    };
+    setExpenses((prev) => [newExpense, ...prev]);
+    await saveExpenseToDb(newExpense);
+    setActiveTab("budget");
+  }
+
   async function handleSaveCategory(category: Category) {
     const saved = await saveCategoryToDb(category);
     if (saved) {
@@ -171,6 +192,16 @@ export default function App() {
                 currency={currency}
                 hideValues={hideValues}
                 onSignOut={signOutUser}
+              />
+            )}
+            {activeTab === "simulator" && (
+              <SimulatorScreen
+                salary={salary}
+                expenses={expenses}
+                categories={categories}
+                currency={currency}
+                hideValues={hideValues}
+                onCommitExpense={handleCommitSimulatedExpense}
               />
             )}
             {activeTab === "settings" && (

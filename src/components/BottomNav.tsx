@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Wallet, LayoutDashboard, Settings } from "lucide-react-native";
+import { Wallet, LayoutDashboard, Sparkles, Settings } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 
-export type TabType = "budget" | "dashboard" | "settings";
+export type TabType = "budget" | "dashboard" | "simulator" | "settings";
 
 type Props = {
   activeTab: TabType;
@@ -56,6 +56,25 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity
+        style={[styles.tab, activeTab === "simulator" && styles.tabActive]}
+        onPress={() => onTabChange("simulator")}
+        activeOpacity={0.8}
+      >
+        <Sparkles
+          size={18}
+          color={activeTab === "simulator" ? colors.brass : colors.paperDim}
+        />
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === "simulator" && styles.tabTextActive,
+          ]}
+        >
+          Simular
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={[styles.tab, activeTab === "settings" && styles.tabActive]}
         onPress={() => onTabChange("settings")}
         activeOpacity={0.8}
@@ -84,16 +103,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
     paddingTop: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     justifyContent: "space-around",
     alignItems: "center",
   },
   tab: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    gap: 4,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
     borderRadius: 999,
   },
   tabActive: {
@@ -101,7 +120,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontFamily: fonts.monoSemiBold,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.paperDim,
   },
   tabTextActive: {
