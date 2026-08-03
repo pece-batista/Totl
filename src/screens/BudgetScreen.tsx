@@ -31,6 +31,7 @@ import IncomesSection from "../components/IncomesSection";
 import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
 import CategoriesModal from "../components/CategoriesModal";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import SectionLabel from "../components/SectionLabel";
 import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category, CurrencyCode, Income } from "../types";
 
@@ -84,6 +85,8 @@ export default function BudgetScreen({
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const isControlled = propSalary !== undefined;
 
@@ -243,10 +246,15 @@ export default function BudgetScreen({
     setFormNotice(null);
   }
 
-  async function handleDelete(id: string) {
+  async function confirmDeleteExpense() {
+    if (!expenseToDelete) return;
+    setDeleteLoading(true);
+    const id = expenseToDelete.id;
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await deleteExpenseFromDb(id);
     if (editingId === id) resetForm();
+    setDeleteLoading(false);
+    setExpenseToDelete(null);
   }
 
   async function persistSalary(val: number) {
@@ -394,7 +402,7 @@ export default function BudgetScreen({
                   currency={currency}
                   hideValues={hideValues}
                   onEdit={() => handleEdit(e)}
-                  onDelete={() => handleDelete(e.id)}
+                  onDelete={() => setExpenseToDelete(e)}
                 />
               ))
             )}
@@ -440,7 +448,7 @@ export default function BudgetScreen({
                     currency={currency}
                     hideValues={hideValues}
                     onEdit={() => handleEdit(e)}
-                    onDelete={() => handleDelete(e.id)}
+                    onDelete={() => setExpenseToDelete(e)}
                   />
                 ))
               )}
@@ -453,6 +461,17 @@ export default function BudgetScreen({
             onClose={() => setCategoryModalVisible(false)}
             onSaveCategory={handleSaveCategory}
             onDeleteCategory={handleDeleteCategory}
+          />
+
+          <ConfirmDeleteModal
+            visible={!!expenseToDelete}
+            itemName={expenseToDelete?.name}
+            itemValue={expenseToDelete?.value}
+            currency={currency}
+            hideValues={hideValues}
+            loading={deleteLoading}
+            onConfirm={confirmDeleteExpense}
+            onCancel={() => setExpenseToDelete(null)}
           />
         </ScrollView>
       </KeyboardAvoidingView>
