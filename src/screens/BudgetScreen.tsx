@@ -32,6 +32,7 @@ import ExpenseRow from "../components/ExpenseRow";
 import ExpenseForm from "../components/ExpenseForm";
 import CategoriesModal from "../components/CategoriesModal";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import EditExpenseModal from "../components/EditExpenseModal";
 import SectionLabel from "../components/SectionLabel";
 import type { Expense, ActiveExpense, MonthSummary, FormNotice, ExpenseFormState, ExpenseStatus, Category, CurrencyCode, Income } from "../types";
 
@@ -85,6 +86,8 @@ export default function BudgetScreen({
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<ExpenseFormState>(makeEmptyForm(todayMonthKey()));
+  const [editNotice, setEditNotice] = useState<FormNotice>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -179,7 +182,7 @@ export default function BudgetScreen({
     setEditingId(null);
   }
 
-  function handleSubmit(calculatedMonthlyValue?: number) {
+  function handleAddSubmit(calculatedMonthlyValue?: number) {
     setFormNotice(null);
     if (!form.name.trim()) {
       setFormNotice({ type: "error", text: "Dá um nome pro gasto (ex: Mercado, Notebook...)." });
@@ -203,37 +206,65 @@ export default function BudgetScreen({
       monthlyValue = form.valueMode === "installment" ? rawValue : rawValue / installments;
     }
 
-    if (editingId) {
-      const updatedExpense: Expense = {
-        id: editingId,
-        name: form.name.trim(),
-        value: monthlyValue,
-        installments,
-        startMonth: form.startMonth,
-        categoryId: form.categoryId || null,
-      };
-      saveExpense(updatedExpense, false);
-      setFormNotice({ type: "success", text: "Lançamento atualizado." });
-    } else {
-      const newExpense: Expense = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: form.name.trim(),
-        value: monthlyValue,
-        installments,
-        startMonth: form.startMonth,
-        categoryId: form.categoryId || null,
-      };
-      saveExpense(newExpense, true);
-      setFormNotice({ type: "success", text: `"${newExpense.name}" adicionado.` });
-    }
-    resetForm();
+    const newExpense: Expense = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: form.name.trim(),
+      value: monthlyValue,
+      installments,
+      startMonth: form.startMonth,
+      categoryId: form.categoryId || null,
+    };
+    saveExpense(newExpense, true);
+    setFormNotice({ type: "success", text: `"${newExpense.name}" adicionado.` });
+    setForm(makeEmptyForm(selectedMonth));
     setTimeout(() => setFormNotice(null), 3000);
+  }
+
+  function handleEditSubmit(calculatedMonthlyValue?: number) {
+    setEditNotice(null);
+    if (!editingId) return;
+    if (!editForm.name.trim()) {
+      setEditNotice({ type: "error", text: "Dá um nome pro gasto (ex: Mercado, Notebook...)." });
+      return;
+    }
+    const rawValue = parseDecimal(editForm.value);
+    if (isNaN(rawValue) || rawValue <= 0) {
+      setEditNotice({ type: "error", text: "O valor precisa ser um número maior que zero (ex: 1200,00)." });
+      return;
+    }
+    if (!editForm.startMonth || !isValidMonthKey(editForm.startMonth)) {
+      setEditNotice({ type: "error", text: "Escolhe o mês inicial no campo de data." });
+      return;
+    }
+    const installments = Math.max(1, parseInt(editForm.installments, 10) || 1);
+    
+    let monthlyValue = 0;
+    if (typeof calculatedMonthlyValue === "number" && calculatedMonthlyValue > 0) {
+      monthlyValue = calculatedMonthlyValue;
+    } else {
+      monthlyValue = editForm.valueMode === "installment" ? rawValue : rawValue / installments;
+    }
+
+    const updatedExpense: Expense = {
+      id: editingId,
+      name: editForm.name.trim(),
+      value: monthlyValue,
+      installments,
+      startMonth: editForm.startMonth,
+      categoryId: editForm.categoryId || null,
+    };
+    saveExpense(updatedExpense, false);
+    setEditNotice({ type: "success", text: "Lançamento atualizado com sucesso." });
+    setTimeout(() => {
+      setEditingId(null);
+      setEditNotice(null);
+    }, 800);
   }
 
   function handleEdit(exp: Expense) {
     const totalValue = exp.value * exp.installments;
     const totalCents = Math.round(totalValue * 100);
-    setForm({
+    setEditForm({
       name: exp.name,
       value: formatCurrencyInput(String(totalCents)),
       valueMode: "total",
@@ -243,7 +274,7 @@ export default function BudgetScreen({
     });
     setEditingId(exp.id);
     setError("");
-    setFormNotice(null);
+    setEditNotice(null);
   }
 
   async function confirmDeleteExpense() {
@@ -408,15 +439,15 @@ export default function BudgetScreen({
             )}
           </View>
 
-          <SectionLabel>{editingId ? "Editar lançamento" : "Adicionar gasto ou parcelamento"}</SectionLabel>
+          <SectionLabel>Adicionar gasto ou parcelamento</SectionLabel>
           <ExpenseForm
             form={form}
             categories={categories}
             currency={currency}
             hideValues={hideValues}
             onChange={setForm}
-            editingId={editingId}
-            onSubmit={handleSubmit}
+            editingId={null}
+            onSubmit={handleAddSubmit}
             onCancel={resetForm}
             onOpenCategoryManager={() => setCategoryModalVisible(true)}
             notice={formNotice}
@@ -472,6 +503,22 @@ export default function BudgetScreen({
             loading={deleteLoading}
             onConfirm={confirmDeleteExpense}
             onCancel={() => setExpenseToDelete(null)}
+          />
+
+          <EditExpenseModal
+            visible={!!editingId}
+            form={editForm}
+            categories={categories}
+            currency={currency}
+            hideValues={hideValues}
+            onChange={setEditForm}
+            onSubmit={handleEditSubmit}
+            onCancel={() => {
+              setEditingId(null);
+              setEditNotice(null);
+            }}
+            onOpenCategoryManager={() => setCategoryModalVisible(true)}
+            notice={editNotice}
           />
         </ScrollView>
       </KeyboardAvoidingView>
