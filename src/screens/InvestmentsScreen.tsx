@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -76,6 +76,13 @@ export default function InvestmentsScreen({
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
   const [customValueInput, setCustomValueInput] = useState("3");
   const [customUnit, setCustomUnit] = useState<"months" | "years">("years");
+
+  const presetScrollRef = useRef<ScrollView>(null);
+
+  // Quando o filtro de categoria muda, reseta a rolagem do carrossel para o início (esquerda)
+  useEffect(() => {
+    presetScrollRef.current?.scrollTo({ x: 0, animated: true });
+  }, [categoryFilter]);
 
   // Carrega taxas oficiais da API do Banco Central
   async function loadRates() {
@@ -452,8 +459,12 @@ export default function InvestmentsScreen({
         {/* PASSO 2: EXPLORAR OUTROS INVESTIMENTOS */}
         <SectionLabel>2. Explore ou troque a opção de investimento</SectionLabel>
 
-        {/* Abas de Filtro de Categoria */}
-        <View style={styles.filterBar}>
+        {/* Abas de Filtro de Categoria (Deslizante na horizontal) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterBar}
+        >
           <TouchableOpacity
             style={[styles.filterBtn, categoryFilter === "all" && styles.filterBtnActive]}
             onPress={() => setCategoryFilter("all")}
@@ -482,10 +493,15 @@ export default function InvestmentsScreen({
               Tesouro Direto
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {/* Carrossel de Presets */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetList}>
+        <ScrollView
+          ref={presetScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.presetList}
+        >
           {filteredPresets.map((preset) => {
             const isSelected = preset.id === selectedPresetId;
             const isRecommended = preset.id === recommendation.recPreset.id;
