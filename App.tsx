@@ -21,11 +21,13 @@ import {
 import BudgetScreen from "./src/screens/BudgetScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import SimulatorScreen from "./src/screens/SimulatorScreen";
+import InvestmentsScreen from "./src/screens/InvestmentsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import CategoriesModal from "./src/components/CategoriesModal";
 import BottomNav, { type TabType } from "./src/components/BottomNav";
 import { colors } from "./src/theme/colors";
+import { todayMonthKey, monthDiff } from "./src/utils/date";
 import type { Expense, Category, CurrencyCode, Income } from "./src/types";
 
 export default function App() {
@@ -152,6 +154,19 @@ export default function App() {
     }
   }
 
+  const currentMonthKey = todayMonthKey();
+  const currentMonthCommitted = expenses.reduce((sum, e) => {
+    const diff = monthDiff(e.startMonth, currentMonthKey);
+    if (diff >= 0 && diff < e.installments) {
+      return sum + e.value;
+    }
+    return sum;
+  }, 0);
+  const currentMonthExtraIncome = incomes
+    .filter((i) => i.monthKey === currentMonthKey)
+    .reduce((sum, i) => sum + i.value, 0);
+  const freeBalance = salary + currentMonthExtraIncome - currentMonthCommitted;
+
   if (loading) {
     return (
       <View style={styles.loading}>
@@ -202,6 +217,13 @@ export default function App() {
                 currency={currency}
                 hideValues={hideValues}
                 onCommitExpense={handleCommitSimulatedExpense}
+              />
+            )}
+            {activeTab === "investments" && (
+              <InvestmentsScreen
+                freeBalance={freeBalance}
+                currency={currency}
+                hideValues={hideValues}
               />
             )}
             {activeTab === "settings" && (

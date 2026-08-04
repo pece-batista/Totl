@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Wallet, LayoutDashboard, Sparkles, Settings } from "lucide-react-native";
+import { Wallet, LayoutDashboard, Sparkles, TrendingUp, Settings } from "lucide-react-native";
 import { colors, fonts } from "../theme/colors";
 
-export type TabType = "budget" | "dashboard" | "simulator" | "settings";
+export type TabType = "budget" | "dashboard" | "simulator" | "investments" | "settings";
 
 type Props = {
   activeTab: TabType;
@@ -78,6 +78,26 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
       </TouchableOpacity>
 
       <TouchableOpacity
+        style={[styles.tab, activeTab === "investments" && styles.tabActive]}
+        onPress={() => onTabChange("investments")}
+        activeOpacity={0.8}
+      >
+        <TrendingUp
+          size={18}
+          color={activeTab === "investments" ? colors.brass : colors.paperDim}
+        />
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === "investments" && styles.tabTextActive,
+          ]}
+          numberOfLines={1}
+        >
+          Investir
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={[styles.tab, activeTab === "settings" && styles.tabActive]}
         onPress={() => onTabChange("settings")}
         activeOpacity={0.8}
@@ -107,7 +127,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
     paddingTop: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -117,7 +137,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
     paddingVertical: 6,
-    paddingHorizontal: 2,
+    paddingHorizontal: 1,
     borderRadius: 8,
   },
   tabActive: {
@@ -125,7 +145,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontFamily: fonts.monoSemiBold,
-    fontSize: 10,
+    fontSize: 9.5,
     color: colors.paperDim,
   },
   tabTextActive: {
