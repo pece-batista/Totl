@@ -20,6 +20,7 @@
     "@react-native/babel-preset": "0.86.2",
     "@react-native/metro-config": "0.86.2",
     "@types/react": "~19.2.2",
+    "react-native-dotenv": "^4.1.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
