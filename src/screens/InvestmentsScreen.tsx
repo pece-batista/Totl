@@ -229,7 +229,9 @@ export default function InvestmentsScreen({
           <View style={styles.rateHeader}>
             <View style={styles.rateTitleGroup}>
               <Award size={16} color={colors.brass} />
-              <Text style={styles.rateTitle}>Taxas Oficiais (Banco Central do Brasil)</Text>
+              <Text style={styles.rateTitle} numberOfLines={1} adjustsFontSizeToFit>
+                Taxas Oficiais (Banco Central do Brasil)
+              </Text>
             </View>
             <TouchableOpacity style={styles.refreshBtn} onPress={loadRates} disabled={loadingRates}>
               {loadingRates ? (
@@ -243,15 +245,21 @@ export default function InvestmentsScreen({
           <View style={styles.rateGrid}>
             <View style={styles.rateCard}>
               <Text style={styles.rateLabel}>SELIC / CDI</Text>
-              <Text style={styles.rateValue}>{rates?.selicRate.toFixed(2).replace(".", ",")}% a.a.</Text>
+              <Text style={styles.rateValue} numberOfLines={1} adjustsFontSizeToFit>
+                {rates?.selicRate.toFixed(2).replace(".", ",")}% a.a.
+              </Text>
             </View>
             <View style={styles.rateCard}>
               <Text style={styles.rateLabel}>POUPANÇA</Text>
-              <Text style={styles.rateValue}>{rates?.poupancaRate.toFixed(2).replace(".", ",")}% a.a.</Text>
+              <Text style={styles.rateValue} numberOfLines={1} adjustsFontSizeToFit>
+                {rates?.poupancaRate.toFixed(2).replace(".", ",")}% a.a.
+              </Text>
             </View>
             <View style={styles.rateCard}>
               <Text style={styles.rateLabel}>INFLAÇÃO (IPCA)</Text>
-              <Text style={styles.rateValue}>~{rates?.ipcaRate.toFixed(2).replace(".", ",")}% a.a.</Text>
+              <Text style={styles.rateValue} numberOfLines={1} adjustsFontSizeToFit>
+                ~{rates?.ipcaRate.toFixed(2).replace(".", ",")}% a.a.
+              </Text>
             </View>
           </View>
         </View>
@@ -726,16 +734,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
   rateTitleGroup: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    flex: 1,
+    flexShrink: 1,
   },
   rateTitle: {
     fontSize: 12,
     fontFamily: fonts.monoSemiBold,
     color: colors.paper,
+    flex: 1,
+    flexShrink: 1,
   },
   refreshBtn: {
     padding: 4,
